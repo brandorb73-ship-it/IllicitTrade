@@ -1,18 +1,21 @@
 import { CONFIG } from "./config.js";
 import { loadSheet } from "./sheets.js";
-import { initMap, drawLayer } from "./map.js";
+import { initMap, drawTrade, drawEnforcement } from "./map.js";
 
-let map;
-let originTrade = [];
+let currentTab = "origin";
 
-initLogin();
+window.enterApp = () => {
+  if (document.getElementById("password").value !== "brandorb") return;
 
-function initLogin() {
-  const savedLogo = localStorage.getItem("brandorbLogo");
-  if (savedLogo) {
-    document.getElementById("loginLogo").src = savedLogo;
-    document.getElementById("headerLogo").src = savedLogo;
-  }
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  initMap();
+};
+
+window.switchTab = tab => {
+  currentTab = tab;
+  // next: load data + draw map + table
+};
 
   document.getElementById("logoUpload").onchange = handleLogoUpload;
   document.getElementById("enterBtn").onclick = enterApp;
