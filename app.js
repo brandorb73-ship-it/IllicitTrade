@@ -1,11 +1,9 @@
 import { CONFIG } from "./config.js";
 import { loadSheet } from "./sheets.js";
-import { drawLayer } from "./map.js";
+import { initMap, drawLayer } from "./map.js";
 
+let map;
 let originTrade = [];
-let destTrade = [];
-let enforcement = [];
-let illicit = [];
 
 initLogin();
 
@@ -37,26 +35,23 @@ async function enterApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  await loadData();
-}
+  // IMPORTANT: init map AFTER visible
+  map = initMap();
 
-async function loadData() {
-  originTrade = await loadSheet(CONFIG.SHEETS.ORIGIN_TRADE.id, CONFIG.SHEETS.ORIGIN_TRADE.name);
-  destTrade = await loadSheet(CONFIG.SHEETS.DEST_TRADE.id, CONFIG.SHEETS.DEST_TRADE.name);
-  enforcement = await loadSheet(CONFIG.SHEETS.ENFORCEMENT.id, CONFIG.SHEETS.ENFORCEMENT.name);
-  illicit = await loadSheet(CONFIG.SHEETS.ILLICIT.id, CONFIG.SHEETS.ILLICIT.name);
+  // Load data AFTER map exists
+  originTrade = await loadSheet(
+    CONFIG.SHEETS.ORIGIN_TRADE.id,
+    CONFIG.SHEETS.ORIGIN_TRADE.name
+  );
 
   populateCountries();
 }
 
 function populateCountries() {
-  const countries = [...new Set([
-    ...originTrade.map(d => d["ORIGIN COUNTRIES"]),
-    ...destTrade.map(d => d["DESTINATION COUNTRIES"])
-  ])];
-
   const select = document.getElementById("country");
   select.innerHTML = "";
+
+  const countries = [...new Set(originTrade.map(d => d["ORIGIN COUNTRIES"]))];
 
   countries.forEach(c => {
     const opt = document.createElement("option");
@@ -65,22 +60,31 @@ function populateCountries() {
   });
 
   select.onchange = () => renderCountry(select.value);
-  renderCountry(countries[0]);
+
+  if (countries.length) renderCountry(countries[0]);
 }
 
 function renderCountry(country) {
-  const tradeRows = originTrade.filter(r => r["ORIGIN COUNTRIES"] === country);
-  drawLayer(tradeRows, "#38bdf8", "trade");
-  renderTable(tradeRows);
+  const rows = originTrade.filter(r => r["ORIGIN COUNTRIES"] === country);
+
+  drawLayer(rows, "#38bdf8", "trade");
+
+  renderTable(rows);
 }
 
 function renderTable(rows) {
-  if (!rows.length) return;
+  if (!rows.length) {
+    document.getElementById("table").innerHTML =
+      "<p style='padding:12px'>No data available</p>";
+    return;
+  }
 
   document.getElementById("table").innerHTML = `
     <table>
       <tr>${Object.keys(rows[0]).map(h => `<th>${h}</th>`).join("")}</tr>
-      ${rows.map(r => `<tr>${Object.values(r).map(v => `<td>${v}</td>`).join("")}</tr>`).join("")}
+      ${rows.map(r =>
+        `<tr>${Object.values(r).map(v => `<td>${v}</td>`).join("")}</tr>`
+      ).join("")}
     </table>
   `;
 }
