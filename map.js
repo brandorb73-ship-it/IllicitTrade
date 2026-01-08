@@ -1,58 +1,63 @@
-import { CONFIG } from "./config.js";
-
-let map = null;
+let map;
+let tradeLayer;
+let enforcementLayer;
 
 export function initMap() {
-  mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
+  map = L.map("map", {
+    zoomControl: true,
+    worldCopyJump: true
+  }).setView([15, 20], 2);
 
-  map = new mapboxgl.Map({
-    container: "map",
-    style: "mapbox://styles/mapbox/dark-v11",
-    center: [30, 10],
-    zoom: 2
-  });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
 
+  setTimeout(() => map.invalidateSize(), 200);
   return map;
 }
 
-export function drawLayer(rows, color, id) {
-  if (!map) return;
+export function drawTradeRoutes(rows) {
+  if (tradeLayer) tradeLayer.remove();
 
-  if (map.getLayer(id)) map.removeLayer(id);
-  if (map.getSource(id)) map.removeSource(id);
+  tradeLayer = L.layerGroup().addTo(map);
 
-  const features = rows
-    .filter(r => r["ORIGIN LAT"] && r["DESTINATION LAT"])
-    .map(r => ({
-      type: "Feature",
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [Number(r["ORIGIN LNG"]), Number(r["ORIGIN LAT"])],
-          [Number(r["DESTINATION LNG"]), Number(r["DESTINATION LAT"])]
-        ]
+  rows.forEach(r => {
+    if (!r["ORIGIN LAT"] || !r["DESTINATION LAT"]) return;
+
+    L.polyline(
+      [
+        [r["ORIGIN LAT"], r["ORIGIN LNG"]],
+        [r["DESTINATION LAT"], r["DESTINATION LNG"]]
+      ],
+      {
+        color: "#38bdf8",
+        weight: 2,
+        opacity: 0.9
       }
-    }));
-
-  if (!features.length) return;
-
-  map.addSource(id, {
-    type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features
-    }
+    ).addTo(tradeLayer);
   });
+}
 
-  map.addLayer({
-    id,
-    type: "line",
-    source: id,
-    paint: {
-      "line-color": color,
-      "line-width": 2,
-      "line-opacity": 0.9,
-      "line-dasharray": [2, 2]
-    }
+export function drawEnforcementRoutes(rows) {
+  if (enforcementLayer) enforcementLayer.remove();
+
+  enforcementLayer = L.layerGroup().addTo(map);
+
+  rows.forEach(r => {
+    if (!r["ORIGIN LAT"] || !r["DESTINATION LAT"]) return;
+
+    L.polyline(
+      [
+        [r["ORIGIN LAT"], r["ORIGIN LNG"]],
+        [r["DESTINATION LAT"], r["DESTINATION LNG"]]
+      ],
+      {
+        color: "#f97316",
+        weight: 2,
+        dashArray: "6,4",
+        opacity: 0.85
+      }
+    ).addTo(enforcementLayer);
   });
 }
