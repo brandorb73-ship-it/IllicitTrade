@@ -7,14 +7,25 @@
 </head>
 <body>
 
-<header>
-  <img src="brandorb-logo.svg" height="32"/>
-  <select id="country"></select>
-  <button id="logout">Logout</button>
-</header>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login">
+  <img id="loginLogo" src="brandorb-logo.svg" height="48"/>
+  
+  <input type="file" id="logoUpload" accept="image/*"/>
+  
+  <button id="enterBtn">Enter Intelligence Platform</button>
+</div>
 
-<div id="map"></div>
-<div id="table"></div>
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <header>
+    <img id="headerLogo" src="brandorb-logo.svg" height="32"/>
+    <select id="country"></select>
+  </header>
+
+  <div id="map"></div>
+  <div id="table"></div>
+</div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 <script type="module" src="app.js"></script>
