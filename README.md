@@ -37,4 +37,18 @@ The app is **static**, **secure**, and deployable on **GitHub + Vercel**.
 ---
 
 ## 📁 Project Structure
+---
 
+## BRANDORB – Illicit Trade Intelligence
+
+### Overview
+This application visualizes illicit trade routes, enforcement activity, and trade flows using live Google Sheets data and an interactive map.
+
+### Technology
+- Leaflet (OpenStreetMap – no API key required)
+- Vanilla JavaScript
+- Google Sheets (public view access)
+- Vercel hosting
+
+### Login
+Default password:brandorb
