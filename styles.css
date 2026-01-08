@@ -1,0 +1,38 @@
+body {
+  margin: 0;
+  background: #0b1a2b;
+  color: #e5e7eb;
+  font-family: Inter, Arial, sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: #0f172a;
+}
+
+#map {
+  height: 420px;
+}
+
+table {
+  width: 100%;
+  background: #111827;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 8px;
+  border-bottom: 1px solid #1f2937;
+}
+
+.login {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
