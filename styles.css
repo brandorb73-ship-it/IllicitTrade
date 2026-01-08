@@ -3,6 +3,7 @@ body {
   background: #0b1a2b;
   color: #e5e7eb;
   font-family: Inter, Arial, sans-serif;
+  height: 100%;
 }
 
 header {
@@ -10,11 +11,12 @@ header {
   align-items: center;
   gap: 12px;
   padding: 10px;
-  background: #0f172a;
+  background: #020617;
 }
 
 #map {
   height: 420px;
+  width: 100%;
 }
 
 table {
@@ -30,11 +32,12 @@ th, td {
 
 .login {
   height: 100vh;
+  background: linear-gradient(135deg, #020617, #0b1a2b);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 input[type="file"] {
   color: #e5e7eb;
@@ -47,4 +50,15 @@ button {
   color: #0b1a2b;
   cursor: pointer;
   font-weight: bold;
+}
+
+#app {
+  height: 100%;
+}
+
+/* Logo contrast box */
+.login img {
+  background: #020617;
+  padding: 10px;
+  border-radius: 8px;
 }
