@@ -17,6 +17,7 @@ header {
 #map {
   height: 420px;
   width: 100%;
+  background: #020617;
 }
 
 table {
