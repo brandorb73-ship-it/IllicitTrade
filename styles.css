@@ -36,3 +36,15 @@ th, td {
   align-items: center;
   gap: 12px;
 }
+input[type="file"] {
+  color: #e5e7eb;
+}
+
+button {
+  background: #38bdf8;
+  border: none;
+  padding: 10px 16px;
+  color: #0b1a2b;
+  cursor: pointer;
+  font-weight: bold;
+}
