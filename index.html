@@ -17,7 +17,11 @@
 
 <!-- LOGIN -->
 <div id="loginScreen">
-  <img src="assets/brandorb-logo.png" height="48" />
+<label class="logo-upload">
+  Upload Logo
+  <input type="file" id="logoInput" accept="image/*" hidden />
+</label>
+<img id="logoPreviewLogin" class="logo-preview" />
   <input id="password" type="password" placeholder="Password" />
   <button onclick="enterApp()">Enter</button>
 </div>
@@ -25,7 +29,7 @@
 <!-- APP -->
 <div id="app">
   <header>
-    <img src="assets/brandorb-logo.png" height="32" />
+  <img id="logoPreviewHeader" class="logo-preview small" />
     <span>ILLICIT TRADE INTELLIGENCE</span>
   </header>
 
