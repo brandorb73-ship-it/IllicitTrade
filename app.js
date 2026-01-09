@@ -94,20 +94,21 @@ function enterApp() {
    TAB SWITCHING
 ================================ */
 function switchView(view) {
-  console.log("Switching view:", view);
 
-  // Clear map layers / tables later
-  // map.eachLayer(...)
-
-  // Placeholder logic (we will wire sheets next)
   if (view === "origin") {
-    console.log("Load Origin Trade view");
-  } else if (view === "destination") {
-    console.log("Load Destination Trade view");
-  } else if (view === "enforcement") {
-    console.log("Load Enforcement view");
-  } else if (view === "routes") {
-    console.log("Load Illicit Route Insights view");
+    renderTable("Origin Countries - Trade Data");
+  }
+
+  if (view === "destination") {
+    renderTable("Destination Countries - Trade Data");
+  }
+
+  if (view === "enforcement") {
+    renderTable("Origin Countries - Enforcement");
+  }
+
+  if (view === "routes") {
+    renderTable("Illicit Route Insights");
   }
 }
 
