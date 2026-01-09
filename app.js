@@ -118,3 +118,36 @@ async function loadSheetData(sheetUrl) {
   console.log("Loading report from:", sheetUrl);
   alert("Sheet loading logic will be connected next");
 }
+import { loadGoogleSheet } from "./sheets.js";
+
+const SHEET_ID = "PASTE_YOUR_SHEET_ID_HERE";
+
+async function renderTable(sheetName) {
+  const table = await loadGoogleSheet(SHEET_ID, sheetName);
+
+  const thead = document.querySelector("#dataTable thead");
+  const tbody = document.querySelector("#dataTable tbody");
+
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  // headers
+  const headerRow = document.createElement("tr");
+  table.cols.forEach(col => {
+    const th = document.createElement("th");
+    th.textContent = col.label;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+
+  // rows
+  table.rows.forEach(row => {
+    const tr = document.createElement("tr");
+    row.c.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell ? cell.v : "";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
