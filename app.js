@@ -49,6 +49,12 @@ if (passwordInput) {
       switchView(tab.dataset.view);
     });
   });
+   
+import { setRouteColor } from "./map.js";
+
+document.getElementById("routeColorPicker")?.addEventListener("change", e => {
+  setRouteColor(e.target.value);
+});
 
   // 📊 Load report button
   const loadBtn = document.getElementById("loadReportBtn");
