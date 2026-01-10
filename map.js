@@ -43,4 +43,50 @@ export function onMapClickTab(e,tabName){
     color: currentColor, weight:3, opacity:0.85
   }).addTo(state.manualLayer);
 
-  // Arrow (uses global L.polylineDecorato
+  // Arrow (uses global L.polylineDecorator loaded via script in index.html)
+  L.polylineDecorator(line,{
+    patterns:[{
+      offset:"50%", repeat:0,
+      symbol:L.Symbol.arrowHead({pixelSize:10, polygon:true, pathOptions:{color:currentColor}})
+    }]
+  }).addTo(state.manualLayer);
+
+  state.manualRoutes.push({from:state.manualStartPoint, to:clickPoint, color:currentColor});
+  state.manualStartPoint = null; // reset for next dot
+}
+
+// ------------------ SET ROUTE COLOR ------------------
+export function setRouteColor(color){
+  currentColor = color;
+}
+
+// ------------------ CLEAR ROUTES ------------------
+export function clearTabRoutes(tabName){
+  const state = tabStates[tabName];
+  state.manualLayer.clearLayers();
+  state.manualRoutes=[];
+  state.manualStartPoint=null;
+}
+
+// ------------------ OPTIONAL: AUTO DRAW FUNCTIONS ------------------
+export function drawTrade(rows){
+  const state = tabStates["origin"];
+  if(!state.map) return;
+  const layer = L.layerGroup().addTo(state.map);
+
+  rows.forEach(r=>{
+    if(!r.originLat || !r.destLat) return;
+    L.polyline([[r.originLat,r.originLng],[r.destLat,r.destLng]],{color:"#38bdf8",weight:2}).addTo(layer);
+  });
+}
+
+export function drawEnforcement(rows){
+  const state = tabStates["enforcement"];
+  if(!state.map) return;
+  const layer = L.layerGroup().addTo(state.map);
+
+  rows.forEach(r=>{
+    if(!r.originLat || !r.destLat) return;
+    L.polyline([[r.originLat,r.originLng],[r.destLat,r.destLng]],{color:"#f97316",dashArray:"6,4",weight:2}).addTo(layer);
+  });
+}
