@@ -22,17 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🔑 ENTER key fallback (in case no <form>)
-  const passwordInput = document.getElementById("password");
-  if (passwordInput) {
-    passwordInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        enterApp();
-      }
-    });
-  }
-
 // 🔑 ENTER key login (no form used)
 const passwordInput = document.getElementById("password");
 if (passwordInput) {
