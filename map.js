@@ -32,26 +32,25 @@ export function onMapClickTab(e, tabName) {
   const clickPoint = e.latlng;
 
   if (!state.manualStartPoint) {
-    // 1st click → create new origin dot
+    // ✅ This is always a new origin
     const dot = L.circleMarker(clickPoint, {
       radius: 6,
       color: currentColor,
       fillOpacity: 0.8
     }).addTo(state.manualLayer);
 
-    // save this dot as the new start point for next line
+    // Set this dot as the start point for the next click
     state.manualStartPoint = clickPoint;
     return;
   }
 
-  // 2nd click → draw line from start point to this click
+  // If manualStartPoint exists, draw line to current click
   const line = L.polyline([state.manualStartPoint, clickPoint], {
     color: currentColor,
     weight: 3,
     opacity: 0.85
   }).addTo(state.manualLayer);
 
-  // add arrow
   L.polylineDecorator(line, {
     patterns: [{
       offset: "50%",
@@ -64,10 +63,10 @@ export function onMapClickTab(e, tabName) {
     }]
   }).addTo(state.manualLayer);
 
-  // save route
+  // Save the route
   state.manualRoutes.push({ from: state.manualStartPoint, to: clickPoint, color: currentColor });
 
-  // ✅ Reset start point so next click will create a new dot
+  // ✅ Reset start point so next click will always create a new dot
   state.manualStartPoint = null;
 }
 
