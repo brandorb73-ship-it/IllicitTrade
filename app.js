@@ -33,6 +33,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+// 🔑 ENTER key login (no form used)
+const passwordInput = document.getElementById("password");
+if (passwordInput) {
+  passwordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      enterApp();
+    }
+  });
+}
+   
   // 🖼 Logo upload
   const logoInput = document.getElementById("logoInput");
   if (logoInput) {
