@@ -1,106 +1,175 @@
-import { initTabMap, onMapClickTab, setRouteColor, clearTabRoutes } from "./map.js";
-import { loadGoogleSheet } from "./sheets.js"; // implement your sheets loader
+import {
+  initTabMap,
+  setRouteColor,
+  clearTabRoutes
+} from "./map.js";
 
+/* ===============================
+   CONFIG
+================================ */
 const PASSWORD = "brandorb";
-const tabs = ["origin","destination","enforcement","routes"];
-let currentTab = "origin";
 
-// ------------------ LOGIN ------------------
-document.getElementById("loginBtn").addEventListener("click", () => {
-  const input = document.getElementById("password").value;
-  if(input !== PASSWORD){ alert("Wrong password"); return; }
+/* ===============================
+   STATE
+================================ */
+let activeTab = "origin";
+
+// store table data per tab so switching tabs does not reload
+const tabTables = {
+  origin: null,
+  destination: null,
+  enforcement: null,
+  routes: null
+};
+
+/* ===============================
+   DOM READY
+================================ */
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* -------- LOGIN -------- */
+  document.getElementById("loginBtn").addEventListener("click", enterApp);
+
+  /* -------- COLOR PICKER -------- */
+  document.getElementById("routeColorPicker").addEventListener("input", e => {
+    setRouteColor(e.target.value);
+  });
+
+  /* -------- CLEAR ROUTES -------- */
+  document.getElementById("clearRoutesBtn").addEventListener("click", () => {
+    clearTabRoutes(activeTab);
+  });
+
+  /* -------- TABS -------- */
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+
+      const view = tab.dataset.view;
+      switchTab(view);
+    });
+  });
+
+  /* -------- LOAD REPORT -------- */
+  document.getElementById("loadReportBtn").addEventListener("click", loadSheet);
+});
+
+/* ===============================
+   LOGIN
+================================ */
+function enterApp() {
+  const pwd = document.getElementById("password").value;
+  if (pwd !== PASSWORD) {
+    alert("Wrong password");
+    return;
+  }
 
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  // init map for first tab
-  switchTab(currentTab);
-});
-
-// ------------------ COLOR PICKER ------------------
-document.getElementById("routeColorPicker").addEventListener("change", e=>{
-  setRouteColor(e.target.value);
-});
-
-// ------------------ CLEAR ROUTES ------------------
-document.getElementById("clearRoutesBtn").addEventListener("click", ()=>{
-  clearTabRoutes(currentTab);
-});
-
-// ------------------ TAB SWITCH ------------------
-document.querySelectorAll(".tab").forEach(tabBtn=>{
-  tabBtn.addEventListener("click", ()=>{
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    tabBtn.classList.add("active");
-    const view = tabBtn.dataset.view;
-    switchTab(view);
-  });
-});
-
-function switchTab(tabName){
-  currentTab = tabName;
-  tabs.forEach(t=>{
-    document.getElementById(`${t}-content`).style.display = t===tabName?"grid":"none";
-  });
-  initTabMap(tabName);
-  renderTableForCurrentTab();
+  // init first tab map
+  initTabMap(activeTab);
 }
 
-// ------------------ LOAD GOOGLE SHEET ------------------
-document.getElementById("loadReportBtn").addEventListener("click", ()=>{
+/* ===============================
+   TAB SWITCHING
+================================ */
+function switchTab(tabName) {
+  activeTab = tabName;
+
+  // show correct map
+  document.querySelectorAll(".tab-map").forEach(m => m.style.display = "none");
+  document.getElementById(`map-${tabName}`).style.display = "block";
+
+  // init map if needed
+  initTabMap(tabName);
+
+  // restore table if already loaded
+  if (tabTables[tabName]) {
+    renderTable(tabTables[tabName]);
+  } else {
+    clearTable();
+  }
+}
+
+/* ===============================
+   GOOGLE SHEET LOADING
+================================ */
+async function loadSheet() {
   const url = document.getElementById("sheetUrl").value.trim();
-  if(!url){ alert("Paste Google Sheet URL"); return; }
-  loadSheetForCurrentTab(url);
-});
+  if (!url) {
+    alert("Paste Google Sheet URL");
+    return;
+  }
 
-async function loadSheetForCurrentTab(sheetUrl){
-  const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if(!match){ alert("Invalid Google Sheet URL"); return; }
-  const sheetId = match[1];
-  const sheetName = "Sheet1"; // adjust if different
+  try {
+    const csvUrl = convertToCSV(url);
+    const res = await fetch(csvUrl);
+    const text = await res.text();
 
-  try{
-    const table = await loadGoogleSheet(sheetId,sheetName);
-    localStorage.setItem("table-"+currentTab, JSON.stringify(table));
-    renderTable(table);
-  }catch(err){
-    console.error(err);
+    const tableData = parseCSV(text);
+    tabTables[activeTab] = tableData;
+    renderTable(tableData);
+  } catch (e) {
+    console.error(e);
     alert("Failed to load report");
   }
 }
 
-// ------------------ RENDER TABLE ------------------
-function renderTable(table){
-  const thead = document.querySelector(`#table-${currentTab} thead`);
-  const tbody = document.querySelector(`#table-${currentTab} tbody`);
+/* ===============================
+   CSV HELPERS
+================================ */
+function convertToCSV(url) {
+  // expects a PUBLIC Google Sheet
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) throw new Error("Invalid Google Sheet URL");
+
+  const sheetId = match[1];
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+}
+
+function parseCSV(text) {
+  const lines = text.split("\n").filter(l => l.trim());
+  const headers = lines.shift().split(",");
+
+  const rows = lines.map(l =>
+    l.split(",").map(v => v.replace(/^"|"$/g, ""))
+  );
+
+  return { headers, rows };
+}
+
+/* ===============================
+   TABLE RENDERING
+================================ */
+function renderTable(data) {
+  const thead = document.querySelector("#dataTable thead");
+  const tbody = document.querySelector("#dataTable tbody");
+
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  if(!table) return;
-
-  // headers
   const tr = document.createElement("tr");
-  table.cols.forEach(c=>{
-    const th = document.createElement("th"); th.textContent=c.label; tr.appendChild(th);
+  data.headers.forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    tr.appendChild(th);
   });
   thead.appendChild(tr);
 
-  // rows
-  table.rows.forEach(r=>{
+  data.rows.forEach(r => {
     const tr = document.createElement("tr");
-    r.c.forEach(cell=>{
+    r.forEach(c => {
       const td = document.createElement("td");
-      td.textContent = cell ? cell.v : "";
+      td.textContent = c;
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
   });
 }
 
-// ------------------ RENDER TABLE FROM LOCALSTORAGE ------------------
-function renderTableForCurrentTab(){
-  const stored = localStorage.getItem("table-"+currentTab);
-  if(stored){
-    renderTable(JSON.parse(stored));
-  }
+function clearTable() {
+  document.querySelector("#dataTable thead").innerHTML = "";
+  document.querySelector("#dataTable tbody").innerHTML = "";
 }
