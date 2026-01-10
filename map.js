@@ -96,4 +96,3 @@ export function drawEnforcement(rows) {
     ).addTo(enforcementLayer);
   });
 }
-<script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.js"></script>
