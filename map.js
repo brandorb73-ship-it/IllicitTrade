@@ -1,54 +1,49 @@
 let map, tradeLayer, enforcementLayer;
 let manualLayer;
 
-// MANUAL ROUTE STATE
-let manualStartPoint = null;
 let manualRoutes = [];
 let currentRouteColor = "#ff0000";
+let manualOrigins = []; // store origin markers
+let manualStartPoint = null;
 
-// ===============================
-// INIT MAP
-// ===============================
-export function initMap() {
-  map = L.map("map").setView([15, 20], 2);
+// helper: distance between two LatLng in meters
+function latLngDistance(a, b) {
+  return map.distance(a, b);
+}
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-  manualLayer = L.layerGroup().addTo(map);
-
-  // Click to draw manual route
-  map.on("click", onMapClick);
-
-  setTimeout(() => map.invalidateSize(), 200);
+// helper: check if click is near an origin
+function findNearbyOrigin(latlng) {
+  return manualOrigins.find(orig => latLngDistance(orig.getLatLng(), latlng) < 10);
 }
 
 // ===============================
-// HELPER: check if two LatLngs are same
-// ===============================
-function sameLatLng(a, b) {
-  return a.lat === b.lat && a.lng === b.lng;
-}
-
-// ===============================
-// MANUAL ROUTE DRAWING WITH ARROWS
+// MAP CLICK
 // ===============================
 function onMapClick(e) {
   const clickPoint = e.latlng;
 
-  // First click: set origin
+  // check if click is near an existing origin
+  const nearbyOrigin = findNearbyOrigin(clickPoint);
+
   if (!manualStartPoint) {
-    manualStartPoint = clickPoint;
+    // set start point: either nearby origin or new marker
+    if (nearbyOrigin) {
+      manualStartPoint = nearbyOrigin.getLatLng();
+    } else {
+      manualStartPoint = clickPoint;
 
-    L.circleMarker(manualStartPoint, {
-      radius: 6,
-      color: currentRouteColor,
-      fillOpacity: 0.8
-    }).addTo(manualLayer);
+      const marker = L.circleMarker(manualStartPoint, {
+        radius: 6,
+        color: currentRouteColor,
+        fillOpacity: 0.8
+      }).addTo(manualLayer);
 
+      manualOrigins.push(marker);
+    }
     return;
   }
 
-  // Second click: draw line to destination
+  // draw line from origin to destination
   const line = L.polyline([manualStartPoint, clickPoint], {
     color: currentRouteColor,
     weight: 3,
@@ -75,28 +70,44 @@ function onMapClick(e) {
     color: currentRouteColor
   });
 
-  // Reset origin so next click is new origin
+  // Reset origin for next click
   manualStartPoint = null;
 }
 
 // ===============================
-// SET ROUTE COLOR
+// SET COLOR
 // ===============================
 export function setRouteColor(color) {
   currentRouteColor = color;
 }
 
 // ===============================
-// CLEAR MANUAL ROUTES
+// CLEAR ROUTES
 // ===============================
 export function clearManualRoutes() {
   manualLayer.clearLayers();
   manualRoutes = [];
+  manualOrigins = [];
   manualStartPoint = null;
 }
 
 // ===============================
-// EXISTING AUTO DRAW FUNCTIONS
+// INIT MAP
+// ===============================
+export function initMap() {
+  map = L.map("map").setView([15, 20], 2);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+  manualLayer = L.layerGroup().addTo(map);
+
+  map.on("click", onMapClick);
+
+  setTimeout(() => map.invalidateSize(), 200);
+}
+
+// ===============================
+// AUTO DRAW (optional)
 // ===============================
 export function drawTrade(rows) {
   if (tradeLayer) tradeLayer.remove();
