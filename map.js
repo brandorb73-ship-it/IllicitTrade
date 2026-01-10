@@ -35,11 +35,10 @@ function sameLatLng(a, b) {
 function onMapClick(e) {
   const clickPoint = e.latlng;
 
-  // If no origin or clicked a new origin → create new origin
-  if (!manualStartPoint || !sameLatLng(clickPoint, manualStartPoint)) {
+  // First click: set origin
+  if (!manualStartPoint) {
     manualStartPoint = clickPoint;
 
-    // Add circle marker for origin
     L.circleMarker(manualStartPoint, {
       radius: 6,
       color: currentRouteColor,
@@ -49,17 +48,13 @@ function onMapClick(e) {
     return;
   }
 
-  // If click same origin again → stay on origin (allow multiple lines)
-  if (sameLatLng(clickPoint, manualStartPoint)) return;
-
-  // Draw line from origin to destination
+  // Second click: draw line to destination
   const line = L.polyline([manualStartPoint, clickPoint], {
     color: currentRouteColor,
     weight: 3,
     opacity: 0.85
   }).addTo(manualLayer);
 
-  // Add arrow decorator using Leaflet PolylineDecorator
   L.polylineDecorator(line, {
     patterns: [
       {
@@ -74,14 +69,13 @@ function onMapClick(e) {
     ]
   }).addTo(manualLayer);
 
-  // Save route in state
   manualRoutes.push({
     from: manualStartPoint,
     to: clickPoint,
     color: currentRouteColor
   });
 
-  // Reset origin after line drawn → next click is new origin
+  // Reset origin so next click is new origin
   manualStartPoint = null;
 }
 
