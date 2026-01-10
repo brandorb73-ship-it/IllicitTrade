@@ -41,6 +41,21 @@ loadBtn?.addEventListener("click", async () => {
     return;
   }
 
+  async function loadSheetForCurrentTab(sheetUrl) {
+  const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) return alert("Invalid Google Sheet URL");
+
+  const sheetId = match[1];
+  const sheetName = "Sheet1"; // or per tab if needed
+  try {
+    const table = await loadGoogleSheet(sheetId, sheetName);
+    tabs[currentTab].tableData = table;
+    renderTable(table);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load report");
+  }
+}
   // Extract sheet ID from URL
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!match) {
