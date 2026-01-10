@@ -33,53 +33,50 @@ export function initMap() {
 // ===============================
 // MAP CLICK: new origin → draw line
 // ===============================
-function onMapClick(e) {
+function onMapClickTab(e, tabName) {
+  const tab = tabs[tabName];
   const clickPoint = e.latlng;
 
-  if (!manualStartPoint) {
-    // First click: create new origin marker
-    manualStartPoint = clickPoint;
-
-    L.circleMarker(manualStartPoint, {
+  // First click → origin marker
+  if (!tab.manualStartPoint) {
+    tab.manualStartPoint = clickPoint;
+    L.circleMarker(clickPoint, {
       radius: 6,
       color: currentRouteColor,
-      fillOpacity: 0.8,
-    }).addTo(manualLayer);
-
-    return; // wait for next click to draw line
+      fillOpacity: 0.8
+    }).addTo(tab.manualLayer);
+    return;
   }
 
-  // Second click: draw line to destination
-  const line = L.polyline([manualStartPoint, clickPoint], {
+  // Second click → draw line to destination
+  const line = L.polyline([tab.manualStartPoint, clickPoint], {
     color: currentRouteColor,
     weight: 3,
-    opacity: 0.85,
-  }).addTo(manualLayer);
+    opacity: 0.85
+  }).addTo(tab.manualLayer);
 
-  // Arrow
   L.polylineDecorator(line, {
     patterns: [
       {
-        offset: "50%",
+        offset: '50%',
         repeat: 0,
         symbol: L.Symbol.arrowHead({
           pixelSize: 10,
           polygon: true,
-          pathOptions: { color: currentRouteColor },
-        }),
-      },
-    ],
-  }).addTo(manualLayer);
+          pathOptions: { color: currentRouteColor }
+        })
+      }
+    ]
+  }).addTo(tab.manualLayer);
 
-  // Save route
-  manualRoutes.push({
-    from: manualStartPoint,
+  tab.manualRoutes.push({
+    from: tab.manualStartPoint,
     to: clickPoint,
-    color: currentRouteColor,
+    color: currentRouteColor
   });
 
-  // Reset origin: next click creates a new dot
-  manualStartPoint = null;
+  // Reset start point → next click creates new origin
+  tab.manualStartPoint = null;
 }
 
 // ===============================
@@ -131,4 +128,40 @@ export function drawEnforcement(rows) {
       { color: "#f97316", dashArray: "6,4", weight: 2 }
     ).addTo(enforcementLayer);
   });
+}
+export function switchTab(tabName) {
+  currentTab = tabName;
+
+  // Hide all tab content first
+  document.querySelectorAll('.content-grid').forEach(c => c.style.display = 'none');
+  document.getElementById(`${tabName}-content`).style.display = 'grid';
+
+  // Initialize map for tab if not already
+  if (!tabs[tabName].map) {
+    const mapContainer = document.querySelector(`#${tabName}-content #map`);
+    tabs[tabName].map = L.map(mapContainer).setView([15, 20], 2);
+
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
+        subdomains: "abcd",
+        maxZoom: 19
+      }
+    ).addTo(tabs[tabName].map);
+
+    // Manual layer for routes/dots
+    tabs[tabName].manualLayer = L.layerGroup().addTo(tabs[tabName].map);
+
+    // Add click handler for manual drawing
+    tabs[tabName].map.on("click", e => onMapClickTab(e, tabName));
+
+    setTimeout(() => tabs[tabName].map.invalidateSize(), 200);
+  }
+
+  // Render table if data already loaded
+  if (tabs[tabName].tableData) {
+    renderTable(tabs[tabName].tableData);
+  }
 }
