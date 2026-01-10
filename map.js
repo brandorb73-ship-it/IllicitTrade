@@ -47,6 +47,7 @@ function onMapClick(e) {
 
   manualStartPoint = null;
 }
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
 
 // SET ROUTE COLOR
 export function setRouteColor(color) {
