@@ -24,12 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // TABS
   document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      switchView(tab.dataset.view);
-    });
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const view = tab.dataset.view;
+    switchTab(view);
   });
+});
 
   // LOAD REPORT BUTTON (stub)
 const loadBtn = document.getElementById("loadReportBtn");
@@ -145,12 +146,3 @@ function enterApp() {
 function switchView(view) {
   alert(`Switching to tab: ${view}`);
 }
-// Each tab will have its own state
-const tabs = {
-  origin: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
-  destination: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
-  enforcement: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
-  routes: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
-};
-
-let currentTab = 'origin';
