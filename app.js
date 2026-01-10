@@ -71,6 +71,24 @@ document.getElementById("routeColorPicker")?.addEventListener("change", e => {
 
 });
 
+import { clearManualRoutes, setRouteColor } from "./map.js";
+
+// Route color picker
+const colorPicker = document.getElementById("routeColorPicker");
+if (colorPicker) {
+  colorPicker.addEventListener("change", e => {
+    setRouteColor(e.target.value);
+  });
+}
+
+// Clear routes button
+const clearBtn = document.getElementById("clearRoutesBtn");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    clearManualRoutes();
+  });
+}
+
 /* ===============================
    LOGO HANDLING
 ================================ */
