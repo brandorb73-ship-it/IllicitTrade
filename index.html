@@ -44,10 +44,31 @@
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" data-view="origin">Origin Trade</button>
-    <button class="tab" data-view="destination">Destination Trade</button>
-    <button class="tab" data-view="enforcement">Enforcement</button>
-    <button class="tab" data-view="routes">Illicit Route Insights</button>
+  <button class="tab active" data-view="origin">Origin Trade</button>
+  <button class="tab" data-view="destination">Destination Trade</button>
+  <button class="tab" data-view="enforcement">Enforcement</button>
+  <button class="tab" data-view="routes">Illicit Route Insights</button>
+</div>
+
+<!-- Each tab content -->
+<div id="origin-content" class="content-grid">
+  <div id="map" class="map"></div>
+  <div class="table-panel">
+    <h3 id="tableTitle">Report Table</h3>
+    <table id="dataTable"><thead></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<div id="destination-content" class="content-grid" style="display:none">
+  <div id="map" class="map"></div>
+  <div class="table-panel">
+    <h3 id="tableTitle">Report Table</h3>
+    <table id="dataTable"><thead></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<!-- Similarly for enforcement-content and routes-content -->
+
   </div>
 
   <!-- MAIN CONTENT -->
