@@ -137,7 +137,6 @@ async function loadSheetData(sheetUrl) {
   console.log("Loading report from:", sheetUrl);
   alert("Sheet loading logic will be connected next");
 }
-import { loadGoogleSheet } from "./sheets.js";
 
 const SHEET_ID = "PASTE_YOUR_SHEET_ID_HERE";
 
