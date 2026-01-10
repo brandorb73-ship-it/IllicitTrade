@@ -11,12 +11,11 @@ let currentColor = "#ff0000";
 // ------------------ INIT TAB MAP ------------------
 export function initTabMap(tabName) {
   const state = tabStates[tabName];
-  if (state.map) return; // already initialized
+  if (state.map) return;
 
   const mapDiv = document.getElementById(`map-${tabName}`);
   state.map = L.map(mapDiv).setView([15, 20], 2);
 
-  // CARTO Light tiles with English country names
   L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
     attribution: '&copy; OSM &copy; CARTO',
     subdomains: "abcd",
@@ -24,10 +23,7 @@ export function initTabMap(tabName) {
   }).addTo(state.map);
 
   state.manualLayer = L.layerGroup().addTo(state.map);
-
-  // Map click handler
   state.map.on("click", e => onMapClickTab(e, tabName));
-
   setTimeout(() => state.map.invalidateSize(), 200);
 }
 
@@ -36,20 +32,19 @@ export function onMapClickTab(e, tabName) {
   const state = tabStates[tabName];
   const clickPoint = e.latlng;
 
-  // If no current origin → create new dot
+  // 1st click → new origin dot
   if (!state.currentOrigin) {
-    const dot = L.circleMarker(clickPoint, {
+    L.circleMarker(clickPoint, {
       radius: 6,
       color: currentColor,
       fillOpacity: 0.8
     }).addTo(state.manualLayer);
 
-    // Set this as the new origin for next click
     state.currentOrigin = clickPoint;
     return;
   }
 
-  // If currentOrigin exists → draw line to this click
+  // 2nd click → draw line from origin
   const line = L.polyline([state.currentOrigin, clickPoint], {
     color: currentColor,
     weight: 3,
@@ -69,10 +64,9 @@ export function onMapClickTab(e, tabName) {
     }]
   }).addTo(state.manualLayer);
 
-  // Save the route
   state.manualRoutes.push({ from: state.currentOrigin, to: clickPoint, color: currentColor });
 
-  // ✅ Reset origin so next click always creates a new dot
+  // Reset for next dot
   state.currentOrigin = null;
 }
 
@@ -89,9 +83,9 @@ export function clearTabRoutes(tabName) {
   state.currentOrigin = null;
 }
 
-// ------------------ OPTIONAL: AUTO DRAW TRADE ------------------
+// ------------------ OPTIONAL: DRAW TRADE/ENFORCEMENT ------------------
 export function drawTrade(rows) {
-  const state = tabStates["origin"];
+  const state = tabStates.origin;
   if (!state.map) return;
   const layer = L.layerGroup().addTo(state.map);
 
@@ -101,9 +95,8 @@ export function drawTrade(rows) {
   });
 }
 
-// ------------------ OPTIONAL: AUTO DRAW ENFORCEMENT ------------------
 export function drawEnforcement(rows) {
-  const state = tabStates["enforcement"];
+  const state = tabStates.enforcement;
   if (!state.map) return;
   const layer = L.layerGroup().addTo(state.map);
 
