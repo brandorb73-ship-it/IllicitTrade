@@ -1,106 +1,94 @@
-import { loadGoogleSheet } from "./sheets.js";
-
-import { initMap, setRouteColor, clearManualRoutes } from "./map.js";
+import { initTabMap, onMapClickTab, setRouteColor, clearTabRoutes } from "./map.js";
+import { loadGoogleSheet } from "./sheets.js"; // implement your sheets loader
 
 const PASSWORD = "brandorb";
+const tabs = ["origin","destination","enforcement","routes"];
+let currentTab = "origin";
 
-document.addEventListener("DOMContentLoaded", () => {
-  // LOGIN BUTTON
-  const loginBtn = document.getElementById("loginBtn");
-  loginBtn?.addEventListener("click", enterApp);
+// ------------------ LOGIN ------------------
+document.getElementById("loginBtn").addEventListener("click", () => {
+  const input = document.getElementById("password").value;
+  if(input !== PASSWORD){ alert("Wrong password"); return; }
 
-  // ENTER KEY LOGIN
-  const passwordInput = document.getElementById("password");
-  passwordInput?.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      enterApp();
-    }
-  });
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
 
-  // LOGO UPLOAD
-  const logoInput = document.getElementById("logoInput");
-  logoInput?.addEventListener("change", handleLogo);
+  // init map for first tab
+  switchTab(currentTab);
+});
 
-  // TABS
-  document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    const view = tab.dataset.view;
+// ------------------ COLOR PICKER ------------------
+document.getElementById("routeColorPicker").addEventListener("change", e=>{
+  setRouteColor(e.target.value);
+});
+
+// ------------------ CLEAR ROUTES ------------------
+document.getElementById("clearRoutesBtn").addEventListener("click", ()=>{
+  clearTabRoutes(currentTab);
+});
+
+// ------------------ TAB SWITCH ------------------
+document.querySelectorAll(".tab").forEach(tabBtn=>{
+  tabBtn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    tabBtn.classList.add("active");
+    const view = tabBtn.dataset.view;
     switchTab(view);
   });
 });
 
-  // LOAD REPORT BUTTON (stub)
-const loadBtn = document.getElementById("loadReportBtn");
-loadBtn?.addEventListener("click", async () => {
+function switchTab(tabName){
+  currentTab = tabName;
+  tabs.forEach(t=>{
+    document.getElementById(`${t}-content`).style.display = t===tabName?"grid":"none";
+  });
+  initTabMap(tabName);
+  renderTableForCurrentTab();
+}
+
+// ------------------ LOAD GOOGLE SHEET ------------------
+document.getElementById("loadReportBtn").addEventListener("click", ()=>{
   const url = document.getElementById("sheetUrl").value.trim();
-  if (!url) {
-    alert("Paste a Google Sheet URL");
-    return;
-  }
+  if(!url){ alert("Paste Google Sheet URL"); return; }
+  loadSheetForCurrentTab(url);
+});
 
-  async function loadSheetForCurrentTab(sheetUrl) {
+async function loadSheetForCurrentTab(sheetUrl){
   const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) return alert("Invalid Google Sheet URL");
-
+  if(!match){ alert("Invalid Google Sheet URL"); return; }
   const sheetId = match[1];
-  const sheetName = "Sheet1"; // or per tab if needed
-  try {
-    const table = await loadGoogleSheet(sheetId, sheetName);
-    tabs[currentTab].tableData = table;
+  const sheetName = "Sheet1"; // adjust if different
+
+  try{
+    const table = await loadGoogleSheet(sheetId,sheetName);
+    localStorage.setItem("table-"+currentTab, JSON.stringify(table));
     renderTable(table);
-  } catch (err) {
+  }catch(err){
     console.error(err);
     alert("Failed to load report");
   }
 }
-  // Extract sheet ID from URL
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) {
-    alert("Invalid Google Sheet URL");
-    return;
-  }
-  const sheetId = match[1];
 
-  // Default tab name (you can make this dynamic)
-  const sheetName = "Sheet1";
-
-  try {
-    const table = await loadGoogleSheet(sheetId, sheetName);
-    if (!table) {
-      alert("Failed to load sheet");
-      return;
-    }
-    renderTable(table);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load report");
-  }
-});
-
-  function renderTable(table) {
-  const thead = document.querySelector("#dataTable thead");
-  const tbody = document.querySelector("#dataTable tbody");
+// ------------------ RENDER TABLE ------------------
+function renderTable(table){
+  const thead = document.querySelector(`#table-${currentTab} thead`);
+  const tbody = document.querySelector(`#table-${currentTab} tbody`);
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  if (!table.cols || !table.rows) return;
+  if(!table) return;
 
-  // Headers
-  const headerRow = document.createElement("tr");
-  table.cols.forEach(col => {
-    const th = document.createElement("th");
-    th.textContent = col.label;
-    headerRow.appendChild(th);
+  // headers
+  const tr = document.createElement("tr");
+  table.cols.forEach(c=>{
+    const th = document.createElement("th"); th.textContent=c.label; tr.appendChild(th);
   });
-  thead.appendChild(headerRow);
+  thead.appendChild(tr);
 
-  // Rows
-  table.rows.forEach(row => {
+  // rows
+  table.rows.forEach(r=>{
     const tr = document.createElement("tr");
-    row.c.forEach(cell => {
+    r.c.forEach(cell=>{
       const td = document.createElement("td");
       td.textContent = cell ? cell.v : "";
       tr.appendChild(td);
@@ -109,55 +97,10 @@ loadBtn?.addEventListener("click", async () => {
   });
 }
 
-  // ROUTE TOOLS
-  const colorPicker = document.getElementById("routeColorPicker");
-  colorPicker?.addEventListener("change", e => {
-    setRouteColor(e.target.value);
-  });
-
-  const clearBtn = document.getElementById("clearRoutesBtn");
-  clearBtn?.addEventListener("click", () => {
-    clearManualRoutes();
-  });
-});
-
-// LOGO HANDLING
-function handleLogo(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    localStorage.setItem("brandorbLogo", reader.result);
-    applyLogo(reader.result);
-  };
-  reader.readAsDataURL(file);
-}
-
-function applyLogo(src) {
-  const loginLogo = document.getElementById("logoPreviewLogin");
-  const headerLogo = document.getElementById("logoPreviewHeader");
-  if (loginLogo) loginLogo.src = src;
-  if (headerLogo) headerLogo.src = src;
-}
-
-// LOGIN FUNCTION
-function enterApp() {
-  const input = document.getElementById("password").value;
-  if (input !== PASSWORD) {
-    alert("Wrong password");
-    return;
+// ------------------ RENDER TABLE FROM LOCALSTORAGE ------------------
+function renderTableForCurrentTab(){
+  const stored = localStorage.getItem("table-"+currentTab);
+  if(stored){
+    renderTable(JSON.parse(stored));
   }
-
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  const savedLogo = localStorage.getItem("brandorbLogo");
-  if (savedLogo) applyLogo(savedLogo);
-
-  initMap();
-}
-
-// TAB SWITCHING (stub)
-function switchView(view) {
-  alert(`Switching to tab: ${view}`);
 }
