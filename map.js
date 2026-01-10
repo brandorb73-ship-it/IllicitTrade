@@ -1,9 +1,9 @@
 // ------------------ PER-TAB STATE ------------------
 const tabStates = {
-  origin: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
-  destination: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
-  enforcement: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
-  routes: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false }
+  origin: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  destination: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  enforcement: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  routes: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 }
 };
 
 let currentColor = "#ff0000";
@@ -32,10 +32,13 @@ export function onMapClickTab(e, tabName) {
   const state = tabStates[tabName];
   const point = e.latlng;
 
-  // ===============================
-  // CLICK 1 → CREATE ORIGIN DOT
-  // ===============================
-  if (!state.expectingLine) {
+  // Ignore duplicate Leaflet fires
+  state.clickCount++;
+
+  // -------------------------
+  // ODD CLICK → CREATE DOT
+  // -------------------------
+  if (state.clickCount % 2 === 1) {
     state.startPoint = point;
 
     L.circleMarker(point, {
@@ -44,30 +47,18 @@ export function onMapClickTab(e, tabName) {
       fillOpacity: 0.9
     }).addTo(state.manualLayer);
 
-    state.expectingLine = true;
     return;
   }
 
-  // ===============================
-  // CLICK 2 → DRAW LINE + ARROW
-  // ===============================
+  // -------------------------
+  // EVEN CLICK → DRAW LINE
+  // -------------------------
+  if (!state.startPoint) return;
+
   const line = L.polyline(
     [state.startPoint, point],
     { color: currentColor, weight: 3 }
   ).addTo(state.manualLayer);
-
-  // Arrow
-  L.polylineDecorator(line, {
-    patterns: [{
-      offset: "60%",
-      repeat: 0,
-      symbol: L.Symbol.arrowHead({
-        pixelSize: 10,
-        polygon: true,
-        pathOptions: { color: currentColor }
-      })
-    }]
-  }).addTo(state.manualLayer);
 
   state.manualRoutes.push({
     from: state.startPoint,
@@ -75,9 +66,8 @@ export function onMapClickTab(e, tabName) {
     color: currentColor
   });
 
-  // ✅ HARD RESET — THIS IS THE KEY
+  // HARD RESET — THIS PREVENTS DOT 1 REUSE
   state.startPoint = null;
-  state.expectingLine = false;
 }
 
 // ------------------ SET ROUTE COLOR ------------------
