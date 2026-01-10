@@ -107,3 +107,4 @@ export function drawEnforcement(rows) {
     ).addTo(enforcementLayer);
   });
 }
+window.clearManualRoutes = clearManualRoutes;
