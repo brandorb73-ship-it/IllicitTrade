@@ -36,6 +36,11 @@
     <h1>ILLICIT TRADE INTELLIGENCE</h1>
   </header>
 
+  <input type="color" id="routeColorPicker" value="#ff0000" />
+<button onclick="import('./map.js').then(m => m.clearManualRoutes())">
+  Clear Routes
+</button>
+
   <!-- TABS -->
   <div class="tabs">
     <button class="tab active" data-view="origin">Origin Trade</button>
@@ -67,7 +72,7 @@
   />
   <button id="loadReportBtn">Load Report</button>
 </div>
-
+    
   </div>
 </div>
 
