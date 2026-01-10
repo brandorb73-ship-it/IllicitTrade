@@ -1,16 +1,12 @@
 let map, tradeLayer, enforcementLayer;
 let manualLayer;
 
-// ===============================
 // MANUAL ROUTE STATE
-// ===============================
 let manualStartPoint = null;
 let manualRoutes = [];
 let currentRouteColor = "#ff0000";
 
-// ===============================
 // INIT MAP
-// ===============================
 export function initMap() {
   map = L.map("map").setView([15, 20], 2);
 
@@ -18,37 +14,29 @@ export function initMap() {
 
   manualLayer = L.layerGroup().addTo(map);
 
-  // Manual click-to-draw handler
+  // Click to draw manual route
   map.on("click", onMapClick);
 
   setTimeout(() => map.invalidateSize(), 200);
 }
 
-// ===============================
 // MANUAL ROUTE DRAWING
-// ===============================
 function onMapClick(e) {
   if (!manualStartPoint) {
     manualStartPoint = e.latlng;
-
-    // Visual marker for start
+    // Marker for start point
     L.circleMarker(manualStartPoint, {
       radius: 6,
       color: currentRouteColor,
       fillOpacity: 0.8
     }).addTo(manualLayer);
-
     return;
   }
 
-  // Draw route
-  const route = L.polyline(
+  // Draw polyline
+  const line = L.polyline(
     [manualStartPoint, e.latlng],
-    {
-      color: currentRouteColor,
-      weight: 3,
-      opacity: 0.85
-    }
+    { color: currentRouteColor, weight: 3, opacity: 0.85 }
   ).addTo(manualLayer);
 
   manualRoutes.push({
@@ -60,33 +48,25 @@ function onMapClick(e) {
   manualStartPoint = null;
 }
 
-// ===============================
-// ROUTE COLOR CONTROL (called from app.js)
-// ===============================
+// SET ROUTE COLOR
 export function setRouteColor(color) {
   currentRouteColor = color;
 }
 
-// ===============================
-// CLEAR MANUAL ROUTES (optional)
-// ===============================
+// CLEAR ROUTES
 export function clearManualRoutes() {
   manualLayer.clearLayers();
   manualRoutes = [];
   manualStartPoint = null;
 }
 
-// ===============================
-// EXISTING AUTO DRAW FUNCTIONS
-// (UNCHANGED — OPTIONAL USE)
-// ===============================
+// EXISTING AUTO DRAW FUNCTIONS (optional)
 export function drawTrade(rows) {
   if (tradeLayer) tradeLayer.remove();
   tradeLayer = L.layerGroup().addTo(map);
 
   rows.forEach(r => {
     if (!r.originLat || !r.destLat) return;
-
     L.polyline(
       [[r.originLat, r.originLng], [r.destLat, r.destLng]],
       { color: "#38bdf8", weight: 2 }
@@ -100,11 +80,9 @@ export function drawEnforcement(rows) {
 
   rows.forEach(r => {
     if (!r.originLat || !r.destLat) return;
-
     L.polyline(
       [[r.originLat, r.originLng], [r.destLat, r.destLng]],
       { color: "#f97316", dashArray: "6,4", weight: 2 }
     ).addTo(enforcementLayer);
   });
 }
-window.clearManualRoutes = clearManualRoutes;
