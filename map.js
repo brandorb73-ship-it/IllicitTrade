@@ -24,20 +24,30 @@ export function initMap() {
 function onMapClick(e) {
   if (!manualStartPoint) {
     manualStartPoint = e.latlng;
+
     // Marker for start point
     L.circleMarker(manualStartPoint, {
       radius: 6,
       color: currentRouteColor,
       fillOpacity: 0.8
     }).addTo(manualLayer);
+
     return;
   }
 
-  // Draw polyline
-  const line = L.polyline(
-    [manualStartPoint, e.latlng],
-    { color: currentRouteColor, weight: 3, opacity: 0.85 }
-  ).addTo(manualLayer);
+  // Draw line between points
+  const line = L.polyline([manualStartPoint, e.latlng], {
+    color: currentRouteColor,
+    weight: 3,
+    opacity: 0.85
+  }).addTo(manualLayer);
+
+  // Add arrow decorator
+  L.polylineDecorator(line, {
+    patterns: [
+      { offset: '50%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: true, pathOptions: { color: currentRouteColor } }) }
+    ]
+  }).addTo(manualLayer);
 
   manualRoutes.push({
     from: manualStartPoint,
