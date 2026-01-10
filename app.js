@@ -13,6 +13,17 @@ document.addEventListener("DOMContentLoaded", () => {
     loginBtn.addEventListener("click", enterApp);
   }
 
+   // 🔑 Allow ENTER key to login
+const passwordInput = document.getElementById("password");
+if (passwordInput) {
+  passwordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();   // ⛔ stop page reload
+      enterApp();           // ✅ trigger login
+    }
+  });
+}
+
   // 🖼 Logo upload
   const logoInput = document.getElementById("logoInput");
   if (logoInput) {
