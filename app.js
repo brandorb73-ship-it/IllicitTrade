@@ -1,3 +1,5 @@
+import { loadGoogleSheet } from "./sheets.js";
+
 import { initMap, setRouteColor, clearManualRoutes } from "./map.js";
 
 const PASSWORD = "brandorb";
