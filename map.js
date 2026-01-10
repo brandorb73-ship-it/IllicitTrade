@@ -1,9 +1,9 @@
 // ------------------ PER-TAB STATE ------------------
 const tabStates = {
-  origin: { map: null, manualLayer: null, manualRoutes: [], currentOrigin: null },
-  destination: { map: null, manualLayer: null, manualRoutes: [], currentOrigin: null },
-  enforcement: { map: null, manualLayer: null, manualRoutes: [], currentOrigin: null },
-  routes: { map: null, manualLayer: null, manualRoutes: [], currentOrigin: null }
+  origin: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
+  destination: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
+  enforcement: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false },
+  routes: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, expectingLine:false }
 };
 
 let currentColor = "#ff0000";
@@ -30,31 +30,36 @@ export function initTabMap(tabName) {
 // ------------------ CLICK HANDLER ------------------
 export function onMapClickTab(e, tabName) {
   const state = tabStates[tabName];
-  const clickPoint = e.latlng;
+  const point = e.latlng;
 
-  // 1st click → new origin dot
-  if (!state.currentOrigin) {
-    L.circleMarker(clickPoint, {
+  // ===============================
+  // CLICK 1 → CREATE ORIGIN DOT
+  // ===============================
+  if (!state.expectingLine) {
+    state.startPoint = point;
+
+    L.circleMarker(point, {
       radius: 6,
       color: currentColor,
-      fillOpacity: 0.8
+      fillOpacity: 0.9
     }).addTo(state.manualLayer);
 
-    state.currentOrigin = clickPoint;
+    state.expectingLine = true;
     return;
   }
 
-  // 2nd click → draw line from origin
-  const line = L.polyline([state.currentOrigin, clickPoint], {
-    color: currentColor,
-    weight: 3,
-    opacity: 0.85
-  }).addTo(state.manualLayer);
+  // ===============================
+  // CLICK 2 → DRAW LINE + ARROW
+  // ===============================
+  const line = L.polyline(
+    [state.startPoint, point],
+    { color: currentColor, weight: 3 }
+  ).addTo(state.manualLayer);
 
   // Arrow
   L.polylineDecorator(line, {
     patterns: [{
-      offset: "50%",
+      offset: "60%",
       repeat: 0,
       symbol: L.Symbol.arrowHead({
         pixelSize: 10,
@@ -64,10 +69,15 @@ export function onMapClickTab(e, tabName) {
     }]
   }).addTo(state.manualLayer);
 
-  state.manualRoutes.push({ from: state.currentOrigin, to: clickPoint, color: currentColor });
+  state.manualRoutes.push({
+    from: state.startPoint,
+    to: point,
+    color: currentColor
+  });
 
-  // Reset for next dot
-  state.currentOrigin = null;
+  // ✅ HARD RESET — THIS IS THE KEY
+  state.startPoint = null;
+  state.expectingLine = false;
 }
 
 // ------------------ SET ROUTE COLOR ------------------
