@@ -13,16 +13,25 @@ document.addEventListener("DOMContentLoaded", () => {
     loginBtn.addEventListener("click", enterApp);
   }
 
-   // 🔑 Allow ENTER key to login
-const passwordInput = document.getElementById("password");
-if (passwordInput) {
-  passwordInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
+  // 🔑 ENTER key + form submit support
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) {
+    loginForm.addEventListener("submit", (e) => {
       e.preventDefault();   // ⛔ stop page reload
-      enterApp();           // ✅ trigger login
-    }
-  });
-}
+      enterApp();           // ✅ login
+    });
+  }
+
+  // 🔑 ENTER key fallback (in case no <form>)
+  const passwordInput = document.getElementById("password");
+  if (passwordInput) {
+    passwordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        enterApp();
+      }
+    });
+  }
 
   // 🖼 Logo upload
   const logoInput = document.getElementById("logoInput");
@@ -37,9 +46,7 @@ if (passwordInput) {
         t.classList.remove("active")
       );
       tab.classList.add("active");
-
-      const view = tab.dataset.view;
-      switchView(view);
+      switchView(tab.dataset.view);
     });
   });
 
