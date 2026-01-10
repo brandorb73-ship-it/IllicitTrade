@@ -1,22 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="icon" href="data:,">
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>BRANDORB</title>
-
-  <!-- LEAFLET -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN SCREEN -->
 <div id="loginScreen">
   <label class="logo-upload">
     Upload Logo
@@ -34,85 +26,60 @@
   <header class="app-header">
     <img id="logoPreviewHeader" />
     <h1>ILLICIT TRADE INTELLIGENCE</h1>
-  </header>
-
-  <!-- ROUTE TOOLS -->
-  <div class="route-tools">
     <input type="color" id="routeColorPicker" value="#ff0000" />
     <button id="clearRoutesBtn">Clear Routes</button>
-  </div>
+  </header>
 
   <!-- TABS -->
   <div class="tabs">
-  <button class="tab active" data-view="origin">Origin Trade</button>
-  <button class="tab" data-view="destination">Destination Trade</button>
-  <button class="tab" data-view="enforcement">Enforcement</button>
-  <button class="tab" data-view="routes">Illicit Route Insights</button>
-</div>
-
-<!-- Each tab content -->
-<div id="origin-content" class="content-grid">
-  <div id="map" class="map"></div>
-  <div class="table-panel">
-    <h3 id="tableTitle">Report Table</h3>
-    <table id="dataTable"><thead></thead><tbody></tbody></table>
-  </div>
-</div>
-
-<div id="destination-content" class="content-grid" style="display:none">
-  <div id="map" class="map"></div>
-  <div class="table-panel">
-    <h3 id="tableTitle">Report Table</h3>
-    <table id="dataTable"><thead></thead><tbody></tbody></table>
-  </div>
-</div>
-
-<!-- Similarly for enforcement-content and routes-content -->
-
+    <button class="tab active" data-view="origin">Origin Trade</button>
+    <button class="tab" data-view="destination">Destination Trade</button>
+    <button class="tab" data-view="enforcement">Enforcement</button>
+    <button class="tab" data-view="routes">Illicit Route Insights</button>
   </div>
 
-  <!-- MAIN CONTENT -->
-  <div class="content-grid">
+  <!-- REPORT INPUT -->
+  <div id="reportPanel">
+    <input type="text" id="sheetUrl" placeholder="Paste Google Sheet URL" />
+    <button id="loadReportBtn">Load Report</button>
+  </div>
 
-    <!-- MAP -->
-    <div id="map"></div>
-
-    <!-- TABLE -->
+  <!-- TAB CONTENTS -->
+  <div id="origin-content" class="content-grid">
+    <div id="map-origin" class="map"></div>
     <div class="table-panel">
-      <h3 id="tableTitle">Report Table</h3>
-      <table id="dataTable">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
+      <h3>Report Table</h3>
+      <table id="table-origin"><thead></thead><tbody></tbody></table>
     </div>
-
-    <!-- SHEET URL INPUT -->
-    <div id="reportPanel">
-      <input
-        type="text"
-        id="sheetUrl"
-        placeholder="Paste Google Sheet URL"
-      />
-      <button id="loadReportBtn">Load Report</button>
-    </div>
-
   </div>
+
+  <div id="destination-content" class="content-grid" style="display:none">
+    <div id="map-destination" class="map"></div>
+    <div class="table-panel">
+      <h3>Report Table</h3>
+      <table id="table-destination"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div id="enforcement-content" class="content-grid" style="display:none">
+    <div id="map-enforcement" class="map"></div>
+    <div class="table-panel">
+      <h3>Report Table</h3>
+      <table id="table-enforcement"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div id="routes-content" class="content-grid" style="display:none">
+    <div id="map-routes" class="map"></div>
+    <div class="table-panel">
+      <h3>Report Table</h3>
+      <table id="table-routes"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+
 </div>
 
-<!-- LEAFLET -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- MAIN APP MODULE -->
 <script type="module" src="app.js"></script>
-  <!-- LEAFLET -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- POLYLINE DECORATOR -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.js"></script>
-
-<!-- APP -->
-<script type="module" src="app.js"></script>
-
 </body>
 </html>
-
