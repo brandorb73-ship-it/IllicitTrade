@@ -27,46 +27,47 @@ export function initTabMap(tabName){
 }
 
 // ------------------ CLICK HANDLER ------------------
-export function onMapClickTab(e, tabName){
+export function onMapClickTab(e, tabName) {
   const state = tabStates[tabName];
   const clickPoint = e.latlng;
 
-  if(!state.manualStartPoint){
+  if (!state.manualStartPoint) {
     // 1st click → create new origin dot
-    state.manualStartPoint = clickPoint;
-    L.circleMarker(clickPoint, {
-      radius:6,
+    const dot = L.circleMarker(clickPoint, {
+      radius: 6,
       color: currentColor,
-      fillOpacity:0.8
+      fillOpacity: 0.8
     }).addTo(state.manualLayer);
 
-    // mark this dot as "origin" for the next line
+    // save this dot as the new start point for next line
+    state.manualStartPoint = clickPoint;
     return;
   }
 
-  // 2nd click → draw line from manualStartPoint to click
+  // 2nd click → draw line from start point to this click
   const line = L.polyline([state.manualStartPoint, clickPoint], {
     color: currentColor,
-    weight:3,
-    opacity:0.85
+    weight: 3,
+    opacity: 0.85
   }).addTo(state.manualLayer);
 
+  // add arrow
   L.polylineDecorator(line, {
-    patterns:[{
-      offset:"50%",
-      repeat:0,
-      symbol:L.Symbol.arrowHead({
-        pixelSize:10,
-        polygon:true,
-        pathOptions:{color:currentColor}
+    patterns: [{
+      offset: "50%",
+      repeat: 0,
+      symbol: L.Symbol.arrowHead({
+        pixelSize: 10,
+        polygon: true,
+        pathOptions: { color: currentColor }
       })
     }]
   }).addTo(state.manualLayer);
 
-  // store the route
-  state.manualRoutes.push({from: state.manualStartPoint, to: clickPoint, color: currentColor});
+  // save route
+  state.manualRoutes.push({ from: state.manualStartPoint, to: clickPoint, color: currentColor });
 
-  // ✅ Reset start point so next click creates a new origin
+  // ✅ Reset start point so next click will create a new dot
   state.manualStartPoint = null;
 }
 
