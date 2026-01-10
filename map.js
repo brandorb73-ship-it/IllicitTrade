@@ -6,7 +6,9 @@ let manualStartPoint = null;
 let manualRoutes = [];
 let currentRouteColor = "#ff0000";
 
+// ===============================
 // INIT MAP
+// ===============================
 export function initMap() {
   map = L.map("map").setView([15, 20], 2);
 
@@ -20,12 +22,24 @@ export function initMap() {
   setTimeout(() => map.invalidateSize(), 200);
 }
 
-// MANUAL ROUTE DRAWING
-function onMapClick(e) {
-  if (!manualStartPoint) {
-    manualStartPoint = e.latlng;
+// ===============================
+// HELPER: check if two LatLngs are same
+// ===============================
+function sameLatLng(a, b) {
+  return a.lat === b.lat && a.lng === b.lng;
+}
 
-    // Marker for start point
+// ===============================
+// MANUAL ROUTE DRAWING WITH ARROWS
+// ===============================
+function onMapClick(e) {
+  const clickPoint = e.latlng;
+
+  // If no origin or clicked a new origin → create new origin
+  if (!manualStartPoint || !sameLatLng(clickPoint, manualStartPoint)) {
+    manualStartPoint = clickPoint;
+
+    // Add circle marker for origin
     L.circleMarker(manualStartPoint, {
       radius: 6,
       color: currentRouteColor,
@@ -35,42 +49,61 @@ function onMapClick(e) {
     return;
   }
 
-  // Draw line between points
-  const line = L.polyline([manualStartPoint, e.latlng], {
+  // If click same origin again → stay on origin (allow multiple lines)
+  if (sameLatLng(clickPoint, manualStartPoint)) return;
+
+  // Draw line from origin to destination
+  const line = L.polyline([manualStartPoint, clickPoint], {
     color: currentRouteColor,
     weight: 3,
     opacity: 0.85
   }).addTo(manualLayer);
 
-  // Add arrow decorator
+  // Add arrow decorator using Leaflet PolylineDecorator
   L.polylineDecorator(line, {
     patterns: [
-      { offset: '50%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: true, pathOptions: { color: currentRouteColor } }) }
+      {
+        offset: '50%',
+        repeat: 0,
+        symbol: L.Symbol.arrowHead({
+          pixelSize: 10,
+          polygon: true,
+          pathOptions: { color: currentRouteColor }
+        })
+      }
     ]
   }).addTo(manualLayer);
 
+  // Save route in state
   manualRoutes.push({
     from: manualStartPoint,
-    to: e.latlng,
+    to: clickPoint,
     color: currentRouteColor
   });
 
+  // Reset origin after line drawn → next click is new origin
   manualStartPoint = null;
 }
 
+// ===============================
 // SET ROUTE COLOR
+// ===============================
 export function setRouteColor(color) {
   currentRouteColor = color;
 }
 
-// CLEAR ROUTES
+// ===============================
+// CLEAR MANUAL ROUTES
+// ===============================
 export function clearManualRoutes() {
   manualLayer.clearLayers();
   manualRoutes = [];
   manualStartPoint = null;
 }
 
-// EXISTING AUTO DRAW FUNCTIONS (optional)
+// ===============================
+// EXISTING AUTO DRAW FUNCTIONS
+// ===============================
 export function drawTrade(rows) {
   if (tradeLayer) tradeLayer.remove();
   tradeLayer = L.layerGroup().addTo(map);
