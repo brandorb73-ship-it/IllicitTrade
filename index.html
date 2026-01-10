@@ -18,13 +18,13 @@
 
 <!-- LOGIN -->
 <div id="loginScreen">
-<label class="logo-upload">
-  Upload Logo
-  <input type="file" id="logoInput" accept="image/*" hidden />
-</label>
-<img id="logoPreviewLogin" class="logo-preview" />
+  <label class="logo-upload">
+    Upload Logo
+    <input type="file" id="logoInput" accept="image/*" hidden />
+  </label>
+  <img id="logoPreviewLogin" class="logo-preview" />
   <input id="password" type="password" placeholder="Password" />
- <button id="loginBtn" type="button">Enter</button>
+  <button id="loginBtn" type="button">Enter</button>
 </div>
 
 <!-- APP -->
@@ -36,8 +36,11 @@
     <h1>ILLICIT TRADE INTELLIGENCE</h1>
   </header>
 
-  <input type="color" id="routeColorPicker" value="#ff0000" />
-<button id="clearRoutesBtn">Clear Routes</button>
+  <!-- ROUTE TOOLS -->
+  <div class="route-tools">
+    <input type="color" id="routeColorPicker" value="#ff0000" />
+    <button id="clearRoutesBtn">Clear Routes</button>
+  </div>
 
   <!-- TABS -->
   <div class="tabs">
@@ -61,20 +64,24 @@
         <tbody></tbody>
       </table>
     </div>
-    
-      <div id="reportPanel">
-  <input
-    type="text"
-    id="sheetUrl"
-    placeholder="Paste Google Sheet URL"
-  />
-  <button id="loadReportBtn">Load Report</button>
-</div>
-    
+
+    <!-- SHEET URL INPUT -->
+    <div id="reportPanel">
+      <input
+        type="text"
+        id="sheetUrl"
+        placeholder="Paste Google Sheet URL"
+      />
+      <button id="loadReportBtn">Load Report</button>
+    </div>
+
   </div>
 </div>
 
+<!-- LEAFLET -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- MAIN APP MODULE -->
 <script type="module" src="app.js"></script>
 </body>
 </html>
