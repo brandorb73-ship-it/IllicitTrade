@@ -48,14 +48,20 @@ loadBtn?.addEventListener("click", async () => {
   }
   const sheetId = match[1];
 
-  // Load sheet (use default tab "Sheet1" or change as needed)
-  const table = await loadGoogleSheet(sheetId, "Sheet1");
-  if (!table) {
-    alert("Failed to load sheet");
-    return;
-  }
+  // Default tab name (you can make this dynamic)
+  const sheetName = "Sheet1";
 
-  renderTable(table);
+  try {
+    const table = await loadGoogleSheet(sheetId, sheetName);
+    if (!table) {
+      alert("Failed to load sheet");
+      return;
+    }
+    renderTable(table);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load report");
+  }
 });
 
   function renderTable(table) {
