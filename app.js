@@ -145,3 +145,12 @@ function enterApp() {
 function switchView(view) {
   alert(`Switching to tab: ${view}`);
 }
+// Each tab will have its own state
+const tabs = {
+  origin: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
+  destination: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
+  enforcement: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
+  routes: { map: null, manualLayer: null, manualRoutes: [], manualStartPoint: null, tableData: null },
+};
+
+let currentTab = 'origin';
