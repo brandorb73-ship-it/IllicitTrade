@@ -177,14 +177,14 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     const tableEl = document.getElementById("dataTable");
 
     // ---------------- MAP ----------------
-    const mapRect = mapNode.getBoundingClientRect();
-    const canvasMap = await html2canvas(mapNode, {
-      useCORS: true,
-      width: mapRect.width,
-      height: mapRect.height,
-      scale: 2,
-      backgroundColor: null
-    });
+const mapRect = mapNode.getBoundingClientRect();
+const canvasMap = await html2canvas(mapNode, {
+  useCORS: true,
+  width: mapRect.width,
+  height: mapRect.height,
+  scale: 2,
+  backgroundColor: null
+});
 
     // ---------------- TABLE ----------------
     const tableClone = tableEl.cloneNode(true);
