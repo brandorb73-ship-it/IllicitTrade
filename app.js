@@ -76,7 +76,10 @@ if (loadBtn) {
 const downloadBtn = document.getElementById("downloadReportBtn");
 
 if (downloadBtn) {
-  downloadBtn.addEventListener("click", downloadReport);
+  downloadBtn.addEventListener("click", () => {
+    console.log("DOWNLOAD BUTTON CLICKED");
+    downloadReport();
+  });
 }
 
 /* ===============================
