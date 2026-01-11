@@ -266,4 +266,3 @@ async function downloadReport() {
   };
 
   img.src = "data:image/svg+xml;base64," + btoa(svgStr);
-};
