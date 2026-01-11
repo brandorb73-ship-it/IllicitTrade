@@ -105,3 +105,7 @@ export function drawEnforcement(rows) {
     L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#f97316", dashArray: "6,4", weight: 2 }).addTo(layer);
   });
 }
+
+export function isMapReady() {
+  return !!map;
+}
