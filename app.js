@@ -166,33 +166,65 @@ function clearTable() {
 /* ===============================
    DOWNLOAD REPORT AS PDF
 ================================ */
-async function downloadReportPDF() {
-  if (!isMapReady(activeTab)) {
-    alert("Map is still loading. Try again in a second.");
-    return;
+// ------------------ DOWNLOAD REPORT PDF ------------------
+document.getElementById("downloadReportBtn").addEventListener("click", async () => {
+  try {
+    if (!isMapReady(activeTab)) {
+      alert("Map is still loading. Try again in a second.");
+      return;
+    }
+
+    const mapNode = document.getElementById(`map-${activeTab}`);
+    const tableEl = document.getElementById("dataTable");
+
+    // ---------------- MAP ----------------
+    const canvasMap = await html2canvas(mapNode, {
+      useCORS: true,
+      scale: 2,
+      backgroundColor: null // keep map transparent background if needed
+    });
+
+    // ---------------- TABLE ----------------
+    // Clone table and fix colors
+    const tableClone = tableEl.cloneNode(true);
+    tableClone.style.color = "#000";       // force black text
+    tableClone.style.background = "#fff";  // white background
+    tableClone.style.width = tableEl.offsetWidth + "px";
+    tableClone.style.position = "absolute"; 
+    tableClone.style.left = "-9999px";     // offscreen
+    tableClone.style.top = "0px";
+
+    document.body.appendChild(tableClone);
+
+    // Allow DOM to render
+    await new Promise(r => setTimeout(r, 50));
+
+    const canvasTable = await html2canvas(tableClone, {
+      useCORS: true,
+      scale: 2,
+      backgroundColor: "#fff"
+    });
+
+    document.body.removeChild(tableClone);
+
+    // ---------------- CREATE PDF ----------------
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "px",
+      format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
+    });
+
+    // Add map
+    pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
+
+    // Add table below map
+    pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
+
+    pdf.save(`brandorb-report-${activeTab}.pdf`);
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate PDF. See console for details.");
   }
-
-  const mapNode = document.getElementById(`map-${activeTab}`);
-  const tableEl = document.getElementById("dataTable");
-
-  // Map canvas
-  const canvasMap = await html2canvas(mapNode, { useCORS: true, scale: 2 });
-
-  // Table canvas (clone and fix colors)
-  const tableClone = tableEl.cloneNode(true);
-  tableClone.style.color = "#000";
-  tableClone.style.background = "#fff";
-  const canvasTable = await html2canvas(tableClone, { useCORS: true, scale: 2 });
-
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "px",
-    format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
-  });
-
-  pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
-  pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
-
-  pdf.save(`brandorb-report-${activeTab}.pdf`);
-}
+});
