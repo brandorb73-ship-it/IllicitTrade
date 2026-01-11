@@ -173,3 +173,28 @@ function clearTable() {
   document.querySelector("#dataTable thead").innerHTML = "";
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
+document.getElementById("downloadReportBtn").onclick = () => {
+  const table = document.getElementById("dataTable").outerHTML;
+
+  const mapCanvas = document.querySelector("#map canvas");
+  const mapImage = mapCanvas
+    ? mapCanvas.toDataURL("image/png")
+    : "";
+
+  const html = `
+    <html>
+    <head><meta charset="UTF-8"></head>
+    <body>
+      <h2>BRANDORB Report</h2>
+      ${mapImage ? `<img src="${mapImage}" style="width:100%">` : ""}
+      ${table}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], { type: "text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "brandorb-report.html";
+  a.click();
+};
