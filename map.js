@@ -1,16 +1,13 @@
 // ------------------ PER-TAB STATE ------------------
 const tabStates = {
-  origin: { map: null, manualLayer: null, manualRoutes: [], startPoint: null, clickCount: 0 },
-  destination: { map: null, manualLayer: null, manualRoutes: [], startPoint: null, clickCount: 0 },
-  enforcement: { map: null, manualLayer: null, manualRoutes: [], startPoint: null, clickCount: 0 },
-  routes: { map: null, manualLayer: null, manualRoutes: [], startPoint: null, clickCount: 0 },
-  allmaps: { map: null } // container for All Maps tab
+  origin: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  destination: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  enforcement: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  routes: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 }
 };
 
 let currentColor = "#ff0000";
-
-// ------------------ ALL MAPS SNAPSHOTS ------------------
-export const allMapsSnapshots = []; // stores {tab, map, table, timestamp}
+export const allMapsSnapshots = [];
 
 // ------------------ INIT TAB MAP ------------------
 export function initTabMap(tabName) {
@@ -26,11 +23,8 @@ export function initTabMap(tabName) {
     maxZoom: 19
   }).addTo(state.map);
 
-  if (tabName !== "allmaps") {
-    state.manualLayer = L.layerGroup().addTo(state.map);
-    state.map.on("click", e => onMapClickTab(e, tabName));
-  }
-
+  state.manualLayer = L.layerGroup().addTo(state.map);
+  state.map.on("click", e => onMapClickTab(e, tabName));
   setTimeout(() => state.map.invalidateSize(), 200);
 }
 
@@ -41,7 +35,7 @@ export function onMapClickTab(e, tabName) {
 
   state.clickCount++;
 
-  // ODD CLICK → CREATE DOT
+  // Odd click → new dot (origin)
   if (state.clickCount % 2 === 1) {
     state.startPoint = point;
 
@@ -54,36 +48,22 @@ export function onMapClickTab(e, tabName) {
     return;
   }
 
-  // EVEN CLICK → DRAW LINE
+  // Even click → draw line to this point
   if (!state.startPoint) return;
 
-  const line = L.polyline([state.startPoint, point], { color: currentColor, weight: 3 }).addTo(state.manualLayer);
+  L.polyline([state.startPoint, point], { color: currentColor, weight: 3 }).addTo(state.manualLayer);
 
-  // ------------------ Arrow decorator ------------------
-  if (window.L.PolylineDecorator) {
-    L.polylineDecorator(line, {
-      patterns: [{
-        offset: "50%",
-        repeat: 0,
-        symbol: L.Symbol.arrowHead({
-          pixelSize: 10,
-          polygon: true,
-          pathOptions: { color: currentColor, fillOpacity: 1 }
-        })
-      }]
-    }).addTo(state.manualLayer);
-  }
+  state.manualRoutes.push({
+    from: state.startPoint,
+    to: point,
+    color: currentColor
+  });
 
-  state.manualRoutes.push({ from: state.startPoint, to: point, color: currentColor });
-
-  // HARD RESET → new origin for next line
+  // Reset start point
   state.startPoint = null;
-
-  // Optional: save snapshot automatically after each line
-  // saveSnapshot(tabName);
 }
 
-// ------------------ SET ROUTE COLOR ------------------
+// ------------------ ROUTE COLOR ------------------
 export function setRouteColor(color) {
   currentColor = color;
 }
@@ -94,10 +74,9 @@ export function clearTabRoutes(tabName) {
   if (state.manualLayer) state.manualLayer.clearLayers();
   state.manualRoutes = [];
   state.startPoint = null;
-  state.clickCount = 0;
 }
 
-// ------------------ TRADE / ENFORCEMENT EXAMPLES ------------------
+// ------------------ DRAW TRADE/ENFORCEMENT ------------------
 export function drawTrade(rows) {
   const state = tabStates.origin;
   if (!state.map) return;
@@ -105,8 +84,7 @@ export function drawTrade(rows) {
 
   rows.forEach(r => {
     if (!r.originLat || !r.destLat) return;
-
-    const line = L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#38bdf8", weight: 2 }).addTo(layer);
+    L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#38bdf8", weight: 2 }).addTo(layer);
   });
 }
 
@@ -117,43 +95,53 @@ export function drawEnforcement(rows) {
 
   rows.forEach(r => {
     if (!r.originLat || !r.destLat) return;
-
-    const line = L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#f97316", dashArray: "6,4", weight: 2 }).addTo(layer);
+    L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#f97316", dashArray: "6,4", weight: 2 }).addTo(layer);
   });
 }
 
-// ------------------ CHECK MAP READY ------------------
+// ------------------ MAP READY CHECK ------------------
 export function isMapReady(tabName) {
-  const state = tabStates[tabName];
-  return !!state && !!state.map;
+  return !!tabStates[tabName].map;
 }
 
 // ------------------ SAVE SNAPSHOT ------------------
 export async function saveSnapshot(tabName) {
   const state = tabStates[tabName];
-  if (!state || !state.map) return;
+  if (!state.map) {
+    alert("Map not initialized yet.");
+    return;
+  }
 
   const mapNode = document.getElementById(`map-${tabName}`);
   const tableEl = document.getElementById("dataTable");
 
-  const name = prompt("Enter report name:", `${tabName} - ${new Date().toLocaleString()}`);
-  if (!name) return;
+  // Map to canvas
+  const canvasMap = await html2canvas(mapNode, { useCORS:true, scale:2 });
+  const mapData = canvasMap.toDataURL("image/png");
 
-  try {
-    const mapCanvas = await html2canvas(mapNode, { useCORS: true, scale: 2 });
-    const tableCanvas = await html2canvas(tableEl, { useCORS: true, scale: 2 });
+  // Table to canvas
+  const tableClone = tableEl.cloneNode(true);
+  tableClone.style.position = "absolute";
+  tableClone.style.left = "-9999px";
+  document.body.appendChild(tableClone);
 
-    allMapsSnapshots.push({
-      name,
-      tab: tabName,
-      map: mapCanvas.toDataURL("image/png"),
-      table: tableCanvas.toDataURL("image/png"),
-      timestamp: new Date().toLocaleString()
-    });
+  tableClone.querySelectorAll("thead th").forEach(th => { th.style.color="#f0f0f0"; th.style.background="#333"; });
+  tableClone.querySelectorAll("tbody tr").forEach(tr => { tr.style.color="#000"; tr.style.background="#fff"; });
 
-    alert(`Snapshot "${name}" saved for tab "${tabName}"`);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to save snapshot");
-  }
+  const canvasTable = await html2canvas(tableClone, { scale:2 });
+  const tableData = canvasTable.toDataURL("image/png");
+  document.body.removeChild(tableClone);
+
+  const snapName = prompt("Enter snapshot name:", `Report-${tabName}`);
+  if (!snapName) return;
+
+  allMapsSnapshots.push({
+    tab: tabName,
+    name: snapName,
+    map: mapData,
+    table: tableData,
+    timestamp: new Date().toLocaleString()
+  });
+
+  alert(`Snapshot "${snapName}" saved!`);
 }
