@@ -177,9 +177,9 @@ function clearTable() {
 /* ===============================
    DOWNLOAD REPORT
 ================================ */
-async function downloadReport() {
+async function downloadReportPNG() {
   if (!isMapReady()) {
-    alert("Map is still loading. Please try again in a second.");
+    alert("Map is still loading. Try again in a second.");
     return;
   }
 
@@ -190,31 +190,29 @@ async function downloadReport() {
   }
 
   try {
-    // Use html2canvas to capture map + routes
     const canvas = await html2canvas(mapNode, { useCORS: true });
     const mapImgData = canvas.toDataURL("image/png");
 
-    const tableHTML = document.getElementById("dataTable").outerHTML;
+    // Create final canvas combining map + table
+    const tableEl = document.getElementById("dataTable");
+    const tableCanvas = await html2canvas(tableEl, { useCORS: true });
 
-    const reportHTML = `
-      <html>
-        <head><title>BRANDORB Report</title></head>
-        <body>
-          <h2>BRANDORB Report - Tab: ${activeTab}</h2>
-          <img src="${mapImgData}" style="width:1200px; height:600px;" />
-          ${tableHTML}
-        </body>
-      </html>
-    `;
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = Math.max(canvas.width, tableCanvas.width);
+    finalCanvas.height = canvas.height + tableCanvas.height;
 
-    const blob = new Blob([reportHTML], { type: "text/html" });
+    const ctx = finalCanvas.getContext("2d");
+    ctx.drawImage(canvas, 0, 0);
+    ctx.drawImage(tableCanvas, 0, canvas.height);
+
+    // Download as PNG
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `brandorb-report-${activeTab}.html`;
+    a.href = finalCanvas.toDataURL("image/png");
+    a.download = `brandorb-report-${activeTab}.png`;
     a.click();
 
   } catch (err) {
     console.error(err);
-    alert("Failed to capture map for download.");
+    alert("Failed to generate PNG.");
   }
 }
