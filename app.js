@@ -92,13 +92,11 @@ async function loadReport(csvUrl) {
     if (!res.ok) throw new Error("Fetch failed");
 
     const text = await res.text();
-
     if (!text || !text.trim()) {
       alert("CSV is empty.");
       return;
     }
 
-    // ---- CSV PARSE (SAFE) ----
     const rows = text
       .trim()
       .split("\n")
@@ -114,18 +112,18 @@ async function loadReport(csvUrl) {
     }
 
     const headers = rows.shift();
-
     if (!headers || headers.length === 0) {
       alert("CSV header row is missing.");
       return;
     }
 
-    // ---- STORE TABLE STATE ----
-    tabTables[activeTab] = {
-      headers,
-      rows
-    };
+    // 🔒 SAFETY: ensure tab exists
+    if (!tabTables.hasOwnProperty(activeTab)) {
+      alert("Cannot load table in this tab.");
+      return;
+    }
 
+    tabTables[activeTab] = { headers, rows };
     renderTable(headers, rows);
 
   } catch (err) {
