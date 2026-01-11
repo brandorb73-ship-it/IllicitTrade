@@ -167,41 +167,32 @@ function clearTable() {
    DOWNLOAD REPORT AS PDF
 ================================ */
 async function downloadReportPDF() {
-  if (!isMapReady()) {
+  if (!isMapReady(activeTab)) {
     alert("Map is still loading. Try again in a second.");
     return;
   }
 
   const mapNode = document.getElementById(`map-${activeTab}`);
-  const canvasMap = await html2canvas(mapNode, { useCORS: true, scale: 2 }); // scale 2 = higher resolution
-canvasMap.width = mapNode.offsetWidth * 2;
-canvasMap.height = mapNode.offsetHeight * 2;
-
-
   const tableEl = document.getElementById("dataTable");
 
-  if (!mapNode || !tableEl) {
-    alert("Map or table element not found");
-    return;
-  }
+  // Map canvas
+  const canvasMap = await html2canvas(mapNode, { useCORS: true, scale: 2 });
 
-  try {
-    const canvasMap = await html2canvas(mapNode, { useCORS: true });
-    const canvasTable = await html2canvas(tableEl, { useCORS: true });
+  // Table canvas (clone and fix colors)
+  const tableClone = tableEl.cloneNode(true);
+  tableClone.style.color = "#000";
+  tableClone.style.background = "#fff";
+  const canvasTable = await html2canvas(tableClone, { useCORS: true, scale: 2 });
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "px",
-      format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
-    });
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
+  });
 
-    pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
-    pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
+  pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
+  pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
 
-    pdf.save(`brandorb-report-${activeTab}.pdf`);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to generate PDF.");
-  }
+  pdf.save(`brandorb-report-${activeTab}.pdf`);
 }
