@@ -78,19 +78,50 @@ function enterApp() {
 function switchTab(tabName) {
   activeTab = tabName;
 
-  // show correct map
+  // Hide all tab maps
   document.querySelectorAll(".tab-map").forEach(m => m.style.display = "none");
-  const mapEl = document.getElementById(`map-${tabName}`);
-  if (mapEl) mapEl.style.display = "block";
 
-  // init map if needed
-  initTabMap(tabName);
+  // Show selected tab map
+  const mapDiv = document.getElementById(`map-${tabName}`);
+  if (mapDiv) mapDiv.style.display = "block";
 
-  // restore table if already loaded
-  if (tabTables[tabName]) {
-    renderTable(tabTables[tabName].headers, tabTables[tabName].rows);
-  } else {
-    clearTable();
+  // Init map if needed (except All Maps)
+  if (tabName !== "allmaps") {
+    initTabMap(tabName);
+
+    // Restore previously loaded table if exists
+    if (tabTables[tabName]) {
+      renderTable(tabTables[tabName].headers, tabTables[tabName].rows);
+    } else {
+      clearTable();
+    }
+  }
+
+  // ------------------ ALL MAPS TAB ------------------
+  if (tabName === "allmaps") {
+    const container = document.getElementById("allMapsContainer");
+    container.innerHTML = ""; // clear previous content
+
+    if (allMapsSnapshots.length === 0) {
+      container.innerHTML = "<p>No saved maps yet.</p>";
+      return;
+    }
+
+    allMapsSnapshots.forEach((snap, idx) => {
+      const div = document.createElement("div");
+      div.style.marginBottom = "30px";
+      div.style.border = "1px solid #888";
+      div.style.padding = "10px";
+      div.style.background = "#f0f0f0";
+
+      div.innerHTML = `
+        <h4 style="margin-bottom:10px;">${snap.tab.toUpperCase()} - ${snap.timestamp}</h4>
+        <img src="${snap.map}" style="width:100%; max-width:1200px; margin-bottom:10px; border:1px solid #333;" />
+        <img src="${snap.table}" style="width:100%; max-width:1200px; border:1px solid #333;" />
+      `;
+
+      container.appendChild(div);
+    });
   }
 }
 
