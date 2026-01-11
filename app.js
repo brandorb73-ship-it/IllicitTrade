@@ -166,7 +166,6 @@ function clearTable() {
 /* ===============================
    DOWNLOAD REPORT AS PDF
 ================================ */
-// ------------------ DOWNLOAD REPORT PDF ------------------
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
   try {
     if (!isMapReady(activeTab)) {
@@ -178,33 +177,42 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     const tableEl = document.getElementById("dataTable");
 
     // ---------------- MAP ----------------
+    const mapRect = mapNode.getBoundingClientRect();
     const canvasMap = await html2canvas(mapNode, {
       useCORS: true,
+      width: mapRect.width,
+      height: mapRect.height,
       scale: 2,
-      backgroundColor: null // keep map transparent background if needed
+      backgroundColor: null
     });
 
     // ---------------- TABLE ----------------
-    // Clone table and fix colors
     const tableClone = tableEl.cloneNode(true);
-    tableClone.style.color = "#000";       // force black text
-    tableClone.style.background = "#fff";  // white background
-    tableClone.style.width = tableEl.offsetWidth + "px";
-    tableClone.style.position = "absolute"; 
-    tableClone.style.left = "-9999px";     // offscreen
+    tableClone.style.position = "absolute";
+    tableClone.style.left = "-9999px";
     tableClone.style.top = "0px";
-
+    tableClone.style.width = tableEl.offsetWidth + "px";
     document.body.appendChild(tableClone);
-
-    // Allow DOM to render
     await new Promise(r => setTimeout(r, 50));
+
+    // Header styling
+    tableClone.querySelectorAll("thead th").forEach(th => {
+      th.style.color = "#f0f0f0";      // light
+      th.style.background = "#333333"; // dark
+      th.style.fontWeight = "bold";
+    });
+
+    // Body styling
+    tableClone.querySelectorAll("tbody tr").forEach(tr => {
+      tr.style.color = "#000000";      // dark
+      tr.style.background = "#ffffff"; // light
+    });
 
     const canvasTable = await html2canvas(tableClone, {
       useCORS: true,
       scale: 2,
       backgroundColor: "#fff"
     });
-
     document.body.removeChild(tableClone);
 
     // ---------------- CREATE PDF ----------------
@@ -215,10 +223,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
       format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
     });
 
-    // Add map
     pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
-
-    // Add table below map
     pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
 
     pdf.save(`brandorb-report-${activeTab}.pdf`);
