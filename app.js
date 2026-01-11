@@ -1,13 +1,9 @@
 import { initTabMap, setRouteColor, clearTabRoutes, isMapReady } from "./map.js";
 
 /* ===============================
-   CONFIG
+   CONFIG & STATE
 ================================ */
 const PASSWORD = "brandorb";
-
-/* ===============================
-   STATE
-================================ */
 let activeTab = "origin";
 const tabTables = {
   origin: null,
@@ -17,49 +13,41 @@ const tabTables = {
 };
 
 /* ===============================
-   DOM READY
+   BUTTON & INPUT BINDINGS
 ================================ */
-document.addEventListener("DOMContentLoaded", () => {
+// LOGIN BUTTON
+const loginBtn = document.getElementById("loginBtn");
+if (loginBtn) loginBtn.addEventListener("click", enterApp);
 
-  /* -------- LOGIN -------- */
-  const loginBtn = document.getElementById("loginBtn");
-  if (loginBtn) loginBtn.addEventListener("click", enterApp);
+// COLOR PICKER
+const colorPicker = document.getElementById("routeColorPicker");
+if (colorPicker) colorPicker.addEventListener("input", e => {
+  setRouteColor(e.target.value);
+});
 
-  /* -------- COLOR PICKER -------- */
-  const colorPicker = document.getElementById("routeColorPicker");
-  if (colorPicker) colorPicker.addEventListener("input", e => {
-    setRouteColor(e.target.value);
+// CLEAR ROUTES
+const clearBtn = document.getElementById("clearRoutesBtn");
+if (clearBtn) clearBtn.addEventListener("click", () => {
+  clearTabRoutes(activeTab);
+});
+
+// LOAD REPORT
+const loadBtn = document.getElementById("loadReportBtn");
+if (loadBtn) loadBtn.addEventListener("click", () => {
+  const url = document.getElementById("sheetUrl").value.trim();
+  if (!url) return alert("Paste a published Google Sheet CSV URL");
+  loadSheetData(url);
+});
+
+// TABS
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+
+    const view = tab.dataset.view;
+    switchTab(view);
   });
-
-  /* -------- CLEAR ROUTES -------- */
-  const clearBtn = document.getElementById("clearRoutesBtn");
-  if (clearBtn) clearBtn.addEventListener("click", () => {
-    clearTabRoutes(activeTab);
-  });
-
-  /* -------- TABS -------- */
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-
-      const view = tab.dataset.view;
-      switchTab(view);
-    });
-  });
-
-  /* -------- LOAD REPORT -------- */
-  const loadBtn = document.getElementById("loadReportBtn");
-  if (loadBtn) {
-    loadBtn.addEventListener("click", () => {
-      const url = document.getElementById("sheetUrl").value.trim();
-      if (!url) {
-        alert("Paste a published Google Sheet CSV URL");
-        return;
-      }
-      loadSheetData(url);
-    });
-  }
 });
 
 /* ===============================
@@ -72,15 +60,17 @@ function enterApp() {
     return;
   }
 
+  // Show app
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  // Initialize map for first tab
+  // Initialize first tab map
   initTabMap(activeTab);
 
-  // Bind download button now that #app is visible
+  // Bind download button AFTER login
   const downloadBtn = document.getElementById("downloadReportBtn");
-  if (downloadBtn) downloadBtn.onclick = downloadReportPDF; // or downloadReportPNG
+  if (downloadBtn) downloadBtn.onclick = downloadReportPDF;
+}
 
 /* ===============================
    TAB SWITCHING
@@ -174,44 +164,39 @@ function clearTable() {
 }
 
 /* ===============================
-   DOWNLOAD REPORT
+   DOWNLOAD REPORT AS PDF
 ================================ */
-async function downloadReportPNG() {
+async function downloadReportPDF() {
   if (!isMapReady()) {
     alert("Map is still loading. Try again in a second.");
     return;
   }
 
   const mapNode = document.getElementById(`map-${activeTab}`);
-  if (!mapNode) {
-    alert("Map element not found");
+  const tableEl = document.getElementById("dataTable");
+
+  if (!mapNode || !tableEl) {
+    alert("Map or table element not found");
     return;
   }
 
   try {
-    const canvas = await html2canvas(mapNode, { useCORS: true });
-    const mapImgData = canvas.toDataURL("image/png");
+    const canvasMap = await html2canvas(mapNode, { useCORS: true });
+    const canvasTable = await html2canvas(tableEl, { useCORS: true });
 
-    // Create final canvas combining map + table
-    const tableEl = document.getElementById("dataTable");
-    const tableCanvas = await html2canvas(tableEl, { useCORS: true });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "px",
+      format: [canvasMap.width, canvasMap.height + canvasTable.height + 20]
+    });
 
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = Math.max(canvas.width, tableCanvas.width);
-    finalCanvas.height = canvas.height + tableCanvas.height;
+    pdf.addImage(canvasMap, "PNG", 0, 0, canvasMap.width, canvasMap.height);
+    pdf.addImage(canvasTable, "PNG", 0, canvasMap.height + 20, canvasTable.width, canvasTable.height);
 
-    const ctx = finalCanvas.getContext("2d");
-    ctx.drawImage(canvas, 0, 0);
-    ctx.drawImage(tableCanvas, 0, canvas.height);
-
-    // Download as PNG
-    const a = document.createElement("a");
-    a.href = finalCanvas.toDataURL("image/png");
-    a.download = `brandorb-report-${activeTab}.png`;
-    a.click();
-
+    pdf.save(`brandorb-report-${activeTab}.pdf`);
   } catch (err) {
     console.error(err);
-    alert("Failed to generate PNG.");
+    alert("Failed to generate PDF.");
   }
 }
