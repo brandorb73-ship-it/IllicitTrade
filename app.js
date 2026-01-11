@@ -80,8 +80,7 @@ function enterApp() {
 
   // Bind download button now that #app is visible
   const downloadBtn = document.getElementById("downloadReportBtn");
-  if (downloadBtn) downloadBtn.onclick = downloadReport;
-}
+  if (downloadBtn) downloadBtn.onclick = downloadReportPDF; // or downloadReportPNG
 
 /* ===============================
    TAB SWITCHING
