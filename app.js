@@ -86,7 +86,7 @@ function getActiveTab() {
 }
 
 /* =================== LOAD REPORT =================== */
-async function loadSheetdata(csvUrl) {
+async function loadSheetData(csvUrl) {
   try {
     const res = await fetch(csvUrl);
     if (!res.ok) throw new Error("Fetch failed");
