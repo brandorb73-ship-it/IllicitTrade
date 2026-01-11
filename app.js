@@ -213,15 +213,16 @@ function clearTable() {
 }
 
 async function downloadReport() {
-  
-if (!isMapReady()) {
-  alert("Map is still loading. Please try again in a second.");
-  return;
-}
+  // ✅ Check map is ready
+  if (!isMapReady()) {
+    alert("Map is still loading. Please try again in a second.");
+    return;
+  }
 
-  // rest of export logic...
-}
+  // ✅ Get the map element
+  const mapNode = document.getElementById("map");
 
+  // ✅ Clone the map for export
   const clone = mapNode.cloneNode(true);
   clone.style.width = "1200px";
   clone.style.height = "600px";
@@ -232,30 +233,38 @@ if (!isMapReady()) {
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
+  // ✅ Grab the SVG inside Leaflet (routes)
   const svg = clone.querySelector("svg");
+  if (!svg) {
+    alert("Map SVG not ready for export.");
+    document.body.removeChild(wrapper);
+    return;
+  }
 
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svg);
 
+  // ✅ Draw SVG onto canvas
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 600;
-
   const ctx = canvas.getContext("2d");
   const img = new Image();
 
   img.onload = () => {
     ctx.drawImage(img, 0, 0);
 
+    // ✅ Get table HTML
     const tableHTML = document.getElementById("dataTable").outerHTML;
 
+    // ✅ Compose final HTML
     const html = `
       <html>
-      <body>
-        <h2>BRANDORB Report</h2>
-        <img src="${canvas.toDataURL("image/png")}" />
-        ${tableHTML}
-      </body>
+        <body>
+          <h2>BRANDORB Report</h2>
+          <img src="${canvas.toDataURL("image/png")}" />
+          ${tableHTML}
+        </body>
       </html>
     `;
 
@@ -265,7 +274,9 @@ if (!isMapReady()) {
     a.download = "brandorb-report.html";
     a.click();
 
+    // ✅ Clean up
     document.body.removeChild(wrapper);
   };
 
   img.src = "data:image/svg+xml;base64," + btoa(svgStr);
+}
