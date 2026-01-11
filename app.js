@@ -204,52 +204,75 @@ async function downloadReportPDF() {
   const mapNode = document.getElementById(`map-${tab}`);
   const tableNode = document.getElementById("dataTable");
 
-  const mapCanvas = await html2canvas(mapNode, { scale: 2, useCORS: true });
-  const tableCanvas = await html2canvas(tableNode, { scale: 2 });
+  // ---------------- MAP ----------------
+  const mapRect = mapNode.getBoundingClientRect();
+  const canvasMap = await html2canvas(mapNode, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: null,
+    width: mapRect.width,
+    height: mapRect.height
+  });
 
+  // ---------------- TABLE ----------------
+  const tableClone = tableNode.cloneNode(true);
+  tableClone.style.position = "absolute";
+  tableClone.style.left = "-9999px";
+  tableClone.style.top = "0px";
+  tableClone.style.width = tableNode.offsetWidth + "px";
+  document.body.appendChild(tableClone);
+  await new Promise(r => setTimeout(r, 50)); // wait for render
+
+  // Header styling
+  tableClone.querySelectorAll("thead th").forEach(th => {
+    th.style.color = "#f0f0f0";      // light font
+    th.style.background = "#333333"; // dark background
+    th.style.fontWeight = "bold";
+  });
+
+  // Body styling
+  tableClone.querySelectorAll("tbody tr").forEach(tr => {
+    tr.style.color = "#000000";      // dark font
+    tr.style.background = "#ffffff"; // light background
+  });
+
+  const canvasTable = await html2canvas(tableClone, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#fff"
+  });
+
+  document.body.removeChild(tableClone);
+
+  // ---------------- CREATE PDF ----------------
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF("p", "mm", "a4");
 
-  const w = 190;
-  let h = (mapCanvas.height * w) / mapCanvas.width;
-  pdf.addImage(mapCanvas.toDataURL("image/png"), "PNG", 10, 10, w, h);
+  // A4 landscape in mm
+  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = pdf.internal.pageSize.getWidth() - 20; // leave margin 10mm each side
+  const pageHeight = pdf.internal.pageSize.getHeight() - 20;
 
-  h = (tableCanvas.height * w) / tableCanvas.width;
-  pdf.addPage();
-  pdf.addImage(tableCanvas.toDataURL("image/png"), "PNG", 10, 10, w, h);
-
-  pdf.save(`BrandOrb_Report_${tab}.pdf`);
-}
-
-// =================== ALL MAPS VIEW ===================
-function renderAllMaps() {
-  const container = document.getElementById("allMapsContainer");
-  container.innerHTML = "";
-
-  if (!allMapsSnapshots.length) {
-    container.innerHTML = "<p>No saved reports</p>";
-    return;
+  // scale map to fit width
+  let mapW = pageWidth;
+  let mapH = (canvasMap.height * mapW) / canvasMap.width;
+  if (mapH > pageHeight * 0.6) {
+    // limit map to max 60% page height
+    mapH = pageHeight * 0.6;
+    mapW = (canvasMap.width * mapH) / canvasMap.height;
   }
 
-  allMapsSnapshots.forEach((s, idx) => {
-    const card = document.createElement("div");
-    card.className = "saved-map-card";
+  pdf.addImage(canvasMap, "PNG", 10, 10, mapW, mapH);
 
-    card.innerHTML = `
-      <h4>${s.name}</h4>
-      <small>${s.timestamp}</small>
-      <img src="${s.map}" />
-      <img src="${s.table}" />
-      <button class="delete-btn">Delete</button>
-    `;
+  // scale table to fit remaining height
+  let tableW = pageWidth;
+  let tableH = (canvasTable.height * tableW) / canvasTable.width;
+  const tableStartY = 10 + mapH + 5; // 5mm spacing
+  if (tableStartY + tableH > pageHeight + 10) {
+    tableH = pageHeight - tableStartY;
+    tableW = (canvasTable.width * tableH) / canvasTable.height;
+  }
 
-    card.querySelector(".delete-btn").onclick = () => {
-      if (confirm("Delete this saved report?")) {
-        allMapsSnapshots.splice(idx, 1);
-        renderAllMaps();
-      }
-    };
+  pdf.addImage(canvasTable, "PNG", 10, tableStartY, tableW, tableH);
 
-    container.appendChild(card);
-  });
+  pdf.save(`BrandOrb_Report_${tab}.pdf`);
 }
