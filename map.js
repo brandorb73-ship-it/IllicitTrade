@@ -11,7 +11,10 @@ let currentColor = "#ff0000";
 // ------------------ INIT TAB MAP ------------------
 export function initTabMap(tabName) {
   const state = tabStates[tabName];
-  if (state.map) return;
+  if (state.map) {
+    state.map.invalidateSize();
+    return;
+  }
 
   const mapDiv = document.getElementById(`map-${tabName}`);
   state.map = L.map(mapDiv).setView([15, 20], 2);
@@ -24,6 +27,8 @@ export function initTabMap(tabName) {
 
   state.manualLayer = L.layerGroup().addTo(state.map);
   state.map.on("click", e => onMapClickTab(e, tabName));
+
+  // Fix map display in hidden tabs
   setTimeout(() => state.map.invalidateSize(), 200);
 }
 
@@ -35,9 +40,7 @@ export function onMapClickTab(e, tabName) {
   // Ignore duplicate Leaflet fires
   state.clickCount++;
 
-  // -------------------------
   // ODD CLICK → CREATE DOT
-  // -------------------------
   if (state.clickCount % 2 === 1) {
     state.startPoint = point;
 
@@ -50,15 +53,11 @@ export function onMapClickTab(e, tabName) {
     return;
   }
 
-  // -------------------------
   // EVEN CLICK → DRAW LINE
-  // -------------------------
   if (!state.startPoint) return;
 
-  const line = L.polyline(
-    [state.startPoint, point],
-    { color: currentColor, weight: 3 }
-  ).addTo(state.manualLayer);
+  const line = L.polyline([state.startPoint, point], { color: currentColor, weight: 3 })
+    .addTo(state.manualLayer);
 
   state.manualRoutes.push({
     from: state.startPoint,
@@ -66,7 +65,7 @@ export function onMapClickTab(e, tabName) {
     color: currentColor
   });
 
-  // HARD RESET — THIS PREVENTS DOT 1 REUSE
+  // HARD RESET — prevents dot 1 reuse
   state.startPoint = null;
 }
 
@@ -78,9 +77,10 @@ export function setRouteColor(color) {
 // ------------------ CLEAR ROUTES ------------------
 export function clearTabRoutes(tabName) {
   const state = tabStates[tabName];
-  state.manualLayer.clearLayers();
+  if (state.manualLayer) state.manualLayer.clearLayers();
   state.manualRoutes = [];
-  state.currentOrigin = null;
+  state.startPoint = null;
+  state.clickCount = 0;
 }
 
 // ------------------ OPTIONAL: DRAW TRADE/ENFORCEMENT ------------------
@@ -106,6 +106,12 @@ export function drawEnforcement(rows) {
   });
 }
 
-export function isMapReady() {
-  return !!map;
+// ------------------ IS MAP READY ------------------
+// Check if the current active tab has a map
+export function isMapReady(tabName = null) {
+  if (tabName) {
+    return tabStates[tabName] && !!tabStates[tabName].map;
+  }
+  // fallback: check any tab
+  return Object.values(tabStates).some(s => !!s.map);
 }
