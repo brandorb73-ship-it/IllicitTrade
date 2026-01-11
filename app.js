@@ -1,125 +1,178 @@
-import { initTabMap, setRouteColor, clearTabRoutes, isMapReady, saveSnapshot, allMapsSnapshots } from "./map.js";
+// ------------------ PER-TAB STATE ------------------
+const tabStates = {
+  origin: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  destination: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  enforcement: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 },
+  routes: { map:null, manualLayer:null, manualRoutes:[], startPoint:null, clickCount:0 }
+};
 
-/* ================= CONFIG & STATE ================= */
-const PASSWORD = "brandorb";
-let activeTab = "origin";
-const tabTables = { origin:null, destination:null, enforcement:null, routes:null };
+let currentColor = "#ff0000";
+export const allMapsSnapshots = [];
 
-/* ================= DOM READY ================= */
-document.addEventListener("DOMContentLoaded", () => {
-  // LOGIN
-  document.getElementById("loginBtn").addEventListener("click", enterApp);
+// ------------------ INIT TAB MAP ------------------
+export function initTabMap(tabName) {
+  const state = tabStates[tabName];
+  if (state.map) return;
 
-  // COLOR PICKER
-  document.getElementById("routeColorPicker").addEventListener("input", e => setRouteColor(e.target.value));
-
-  // CLEAR ROUTES
-  document.getElementById("clearRoutesBtn").addEventListener("click", () => clearTabRoutes(activeTab));
-
-  // LOAD REPORT
-  document.getElementById("loadReportBtn").addEventListener("click", () => {
-    const url = document.getElementById("sheetUrl").value.trim();
-    if (!url) return alert("Paste a published Google Sheet CSV URL");
-    loadSheetData(url);
-  });
-
-  // SAVE MAP SNAPSHOT
-  const saveBtn = document.getElementById("saveMapBtn");
-  if (saveBtn) saveBtn.addEventListener("click", () => saveSnapshot(activeTab));
-
-  // DOWNLOAD PDF
-  const downloadBtn = document.getElementById("downloadReportBtn");
-  if (downloadBtn) downloadBtn.addEventListener("click", downloadReportPDF);
-
-  // TABS
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-      tab.classList.add("active");
-      switchTab(tab.dataset.view);
-    });
-  });
-});
-
-/* ================= LOGIN ================= */
-function enterApp() {
-  const pwd = document.getElementById("password").value;
-  if (pwd !== PASSWORD) return alert("Wrong password");
-
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  initTabMap(activeTab);
-}
-
-/* ================= TAB SWITCH ================= */
-function switchTab(tabName) {
-  activeTab = tabName;
-  document.querySelectorAll(".tab-map").forEach(m => m.style.display="none");
   const mapDiv = document.getElementById(`map-${tabName}`);
-  if (mapDiv) mapDiv.style.display = "block";
+  state.map = L.map(mapDiv).setView([15, 20], 2);
 
-  if(tabName!=="allmaps") {
-    initTabMap(tabName);
-    if(tabTables[tabName]) renderTable(tabTables[tabName].headers, tabTables[tabName].rows);
-    else clearTable();
-  } else {
-    const container = document.getElementById("allMapsContainer");
-    container.innerHTML = "";
-    if(allMapsSnapshots.length===0) { container.innerHTML="<p>No saved reports yet.</p>"; return; }
-    allMapsSnapshots.forEach(snap => {
-      const div=document.createElement("div");
-      div.style.marginBottom="30px"; div.style.border="1px solid #888"; div.style.padding="10px"; div.style.background="#f0f0f0";
-      div.innerHTML=`<h4>${snap.name} (${snap.tab.toUpperCase()}) - ${snap.timestamp}</h4>
-                     <img src="${snap.map}" style="width:100%; max-width:1200px; margin-bottom:10px; border:1px solid #333;" />
-                     <img src="${snap.table}" style="width:100%; max-width:1200px; border:1px solid #333;" />`;
-      container.appendChild(div);
-    });
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; OSM &copy; CARTO',
+    subdomains: "abcd",
+    maxZoom: 19
+  }).addTo(state.map);
+
+  state.manualLayer = L.layerGroup().addTo(state.map);
+  state.map.on("click", e => onMapClickTab(e, tabName));
+  setTimeout(() => state.map.invalidateSize(), 200);
+}
+
+// ------------------ CLICK HANDLER ------------------
+export function onMapClickTab(e, tabName) {
+  const state = tabStates[tabName];
+  const point = e.latlng;
+
+  state.clickCount++;
+
+  // Odd click → new dot (origin)
+  if (state.clickCount % 2 === 1) {
+    state.startPoint = point;
+
+    L.circleMarker(point, {
+      radius: 6,
+      color: currentColor,
+      fillOpacity: 0.9
+    }).addTo(state.manualLayer);
+
+    return;
   }
+
+  // Even click → draw line to this point
+  if (!state.startPoint) return;
+
+  // Draw line
+  const line = L.polyline([state.startPoint, point], { color: currentColor, weight: 3 }).addTo(state.manualLayer);
+
+  // Add arrow using polyline decorator
+  if (typeof L.PolylineDecorator !== "undefined") {
+    L.polylineDecorator(line, {
+      patterns: [{
+        offset: "100%",
+        repeat: 0,
+        symbol: L.Symbol.arrowHead({ pixelSize: 10, polygon: true, pathOptions: { color: currentColor } })
+      }]
+    }).addTo(state.manualLayer);
+  }
+
+  state.manualRoutes.push({
+    from: state.startPoint,
+    to: point,
+    color: currentColor
+  });
+
+  // Reset start point
+  state.startPoint = null;
 }
 
-/* ================= GOOGLE SHEET ================= */
-async function loadSheetData(csvUrl) {
-  try {
-    const res = await fetch(csvUrl);
-    if(!res.ok) throw new Error("Fetch failed");
-    const text = await res.text();
-    const rows = text.trim().split("\n").map(r => r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v=>v.replace(/^"|"$/g,""))||[]);
-    if(rows.length<2) return alert("No data found in sheet");
-    const headers = rows.shift();
-    tabTables[activeTab] = { headers, rows };
-    renderTable(headers, rows);
-  } catch(err) { console.error(err); alert("Failed to load report. Make sure sheet is published as CSV."); }
+// ------------------ ROUTE COLOR ------------------
+export function setRouteColor(color) {
+  currentColor = color;
 }
 
-/* ================= TABLE ================= */
-function renderTable(cols, rows) {
-  const thead = document.querySelector("#dataTable thead");
-  const tbody = document.querySelector("#dataTable tbody");
-  thead.innerHTML=""; tbody.innerHTML="";
-  const trh = document.createElement("tr");
-  cols.forEach(c=>{ const th=document.createElement("th"); th.textContent=c; trh.appendChild(th); });
-  thead.appendChild(trh);
-  rows.forEach(r=>{ const tr=document.createElement("tr"); for(let i=0;i<cols.length;i++){ const td=document.createElement("td"); td.textContent=r[i]??""; tr.appendChild(td);} tbody.appendChild(tr);});
+// ------------------ CLEAR ROUTES ------------------
+export function clearTabRoutes(tabName) {
+  const state = tabStates[tabName];
+  if (state.manualLayer) state.manualLayer.clearLayers();
+  state.manualRoutes = [];
+  state.startPoint = null;
 }
-function clearTable(){ document.querySelector("#dataTable thead").innerHTML=""; document.querySelector("#dataTable tbody").innerHTML="";}
 
-/* ================= DOWNLOAD PDF ================= */
-async function downloadReportPDF() {
-  try {
-    if(!isMapReady(activeTab)) { alert("Map not ready."); return; }
-    const mapNode=document.getElementById(`map-${activeTab}`);
-    const tableEl=document.getElementById("dataTable");
-    const mapCanvas=await html2canvas(mapNode,{ useCORS:true, scale:2 });
-    const tableClone=tableEl.cloneNode(true);
-    tableClone.style.position="absolute"; tableClone.style.left="-9999px"; document.body.appendChild(tableClone);
-    tableClone.querySelectorAll("thead th").forEach(th=>{ th.style.color="#f0f0f0"; th.style.background="#333"; });
-    tableClone.querySelectorAll("tbody tr").forEach(tr=>{ tr.style.color="#000"; tr.style.background="#fff"; });
-    const tableCanvas=await html2canvas(tableClone,{scale:2}); document.body.removeChild(tableClone);
-    const { jsPDF }=window.jspdf;
-    const pdf=new jsPDF({ orientation:"landscape", unit:"px", format:[mapCanvas.width,mapCanvas.height+tableCanvas.height+20] });
-    pdf.addImage(mapCanvas,"PNG",0,0,mapCanvas.width,mapCanvas.height);
-    pdf.addImage(tableCanvas,"PNG",0,mapCanvas.height+20,tableCanvas.width,tableCanvas.height);
-    pdf.save(`brandorb-report-${activeTab}.pdf`);
-  } catch(err){ console.error(err); alert("Failed to generate PDF."); }
+// ------------------ DRAW TRADE/ENFORCEMENT ------------------
+export function drawTrade(rows) {
+  const state = tabStates.origin;
+  if (!state.map) return;
+  const layer = L.layerGroup().addTo(state.map);
+
+  rows.forEach(r => {
+    if (!r.originLat || !r.destLat) return;
+    const line = L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#38bdf8", weight: 2 }).addTo(layer);
+    if (typeof L.PolylineDecorator !== "undefined") {
+      L.polylineDecorator(line, {
+        patterns: [{
+          offset: "100%",
+          repeat: 0,
+          symbol: L.Symbol.arrowHead({ pixelSize: 8, polygon: true, pathOptions: { color: "#38bdf8" } })
+        }]
+      }).addTo(layer);
+    }
+  });
+}
+
+export function drawEnforcement(rows) {
+  const state = tabStates.enforcement;
+  if (!state.map) return;
+  const layer = L.layerGroup().addTo(state.map);
+
+  rows.forEach(r => {
+    if (!r.originLat || !r.destLat) return;
+    const line = L.polyline([[r.originLat, r.originLng], [r.destLat, r.destLng]], { color: "#f97316", dashArray: "6,4", weight: 2 }).addTo(layer);
+    if (typeof L.PolylineDecorator !== "undefined") {
+      L.polylineDecorator(line, {
+        patterns: [{
+          offset: "100%",
+          repeat: 0,
+          symbol: L.Symbol.arrowHead({ pixelSize: 8, polygon: true, pathOptions: { color: "#f97316" } })
+        }]
+      }).addTo(layer);
+    }
+  });
+}
+
+// ------------------ MAP READY CHECK ------------------
+export function isMapReady(tabName) {
+  return !!tabStates[tabName].map;
+}
+
+// ------------------ SAVE SNAPSHOT ------------------
+export async function saveSnapshot(tabName) {
+  const state = tabStates[tabName];
+  if (!state.map) {
+    alert("Map not initialized yet.");
+    return;
+  }
+
+  const mapNode = document.getElementById(`map-${tabName}`);
+  const tableEl = document.getElementById("dataTable");
+
+  // Map to canvas
+  const canvasMap = await html2canvas(mapNode, { useCORS:true, scale:2 });
+  const mapData = canvasMap.toDataURL("image/png");
+
+  // Table to canvas
+  const tableClone = tableEl.cloneNode(true);
+  tableClone.style.position = "absolute";
+  tableClone.style.left = "-9999px";
+  document.body.appendChild(tableClone);
+
+  tableClone.querySelectorAll("thead th").forEach(th=>{ th.style.color="#f0f0f0"; th.style.background="#333"; });
+  tableClone.querySelectorAll("tbody tr").forEach(tr=>{ tr.style.color="#000"; tr.style.background="#fff"; });
+
+  const canvasTable = await html2canvas(tableClone, { scale:2 });
+  const tableData = canvasTable.toDataURL("image/png");
+  document.body.removeChild(tableClone);
+
+  const snapName = prompt("Enter snapshot name:", `Report-${tabName}`);
+  if (!snapName) return;
+
+  const snapshot = {
+    tab: tabName,
+    name: snapName,
+    map: mapData,
+    table: tableData,
+    timestamp: new Date().toLocaleString()
+  };
+
+  allMapsSnapshots.push(snapshot);
+  alert(`Snapshot "${snapName}" saved!`);
 }
