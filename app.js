@@ -211,8 +211,12 @@ function clearTable() {
 async function downloadReport() {
   const mapNode = document.getElementById("map");
 
-  // ⬇️ KEEP YOUR EXISTING EXPORT LOGIC HERE ⬇️
-  // (do not change what already works)
+  if (!mapNode) {
+    alert("Map not ready");
+    return; // ✅ legal now
+  }
+
+  // rest of export logic...
 }
 
   const clone = mapNode.cloneNode(true);
@@ -226,10 +230,6 @@ async function downloadReport() {
   document.body.appendChild(wrapper);
 
   const svg = clone.querySelector("svg");
-  if (!svg) {
-    alert("Map not ready yet");
-    return;
-  }
 
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svg);
