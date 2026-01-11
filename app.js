@@ -9,8 +9,6 @@ const PASSWORD = "brandorb";
    STATE
 ================================ */
 let activeTab = "origin";
-
-// store table data per tab so switching tabs does not reload
 const tabTables = {
   origin: null,
   destination: null,
@@ -62,10 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
       loadSheetData(url);
     });
   }
-
-  /* -------- DOWNLOAD REPORT -------- */
-  const downloadBtn = document.getElementById("downloadReportBtn");
-  if (downloadBtn) downloadBtn.addEventListener("click", downloadReport);
 });
 
 /* ===============================
@@ -81,8 +75,12 @@ function enterApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  // init first tab map
+  // Initialize map for first tab
   initTabMap(activeTab);
+
+  // Bind download button now that #app is visible
+  const downloadBtn = document.getElementById("downloadReportBtn");
+  if (downloadBtn) downloadBtn.onclick = downloadReport;
 }
 
 /* ===============================
@@ -131,7 +129,7 @@ async function loadSheetData(csvUrl) {
     }
 
     const headers = rows.shift();
-    tabTables[activeTab] = { headers, rows }; // save table per tab
+    tabTables[activeTab] = { headers, rows };
     renderTable(headers, rows);
 
   } catch (err) {
@@ -191,56 +189,32 @@ async function downloadReport() {
     return;
   }
 
-  // Clone map for export
-  const clone = mapNode.cloneNode(true);
-  clone.style.width = "1200px";
-  clone.style.height = "600px";
-
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "fixed";
-  wrapper.style.left = "-9999px";
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
-
-  const svg = clone.querySelector("svg");
-  if (!svg) {
-    alert("Map SVG not ready for export.");
-    document.body.removeChild(wrapper);
-    return;
-  }
-
-  const serializer = new XMLSerializer();
-  const svgStr = serializer.serializeToString(svg);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 600;
-  const ctx = canvas.getContext("2d");
-  const img = new Image();
-
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0);
+  try {
+    // Use html2canvas to capture map + routes
+    const canvas = await html2canvas(mapNode, { useCORS: true });
+    const mapImgData = canvas.toDataURL("image/png");
 
     const tableHTML = document.getElementById("dataTable").outerHTML;
 
-    const html = `
+    const reportHTML = `
       <html>
+        <head><title>BRANDORB Report</title></head>
         <body>
-          <h2>BRANDORB Report</h2>
-          <img src="${canvas.toDataURL("image/png")}" />
+          <h2>BRANDORB Report - Tab: ${activeTab}</h2>
+          <img src="${mapImgData}" style="width:1200px; height:600px;" />
           ${tableHTML}
         </body>
       </html>
     `;
 
-    const blob = new Blob([html], { type: "text/html" });
+    const blob = new Blob([reportHTML], { type: "text/html" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "brandorb-report.html";
+    a.download = `brandorb-report-${activeTab}.html`;
     a.click();
 
-    document.body.removeChild(wrapper);
-  };
-
-  img.src = "data:image/svg+xml;base64," + btoa(svgStr);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to capture map for download.");
+  }
 }
