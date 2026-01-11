@@ -96,24 +96,26 @@ function switchTab(tabName) {
 /* ===============================
    GOOGLE SHEET LOADING
 ================================ */
-async function loadSheet() {
-  const url = document.getElementById("sheetUrl").value.trim();
-  if (!url) {
-    alert("Paste Google Sheet URL");
-    return;
-  }
-
+async function loadSheetData(sheetUrl) {
   try {
-    const csvUrl = convertToCSV(url);
-    const res = await fetch(csvUrl);
-    const text = await res.text();
+    const res = await fetch(sheetUrl);
+    if (!res.ok) throw new Error("Fetch failed");
 
-    const tableData = parseCSV(text);
-    tabTables[activeTab] = tableData;
-    renderTable(tableData);
-  } catch (e) {
-    console.error(e);
-    alert("Failed to load report");
+    const text = await res.text();
+    const rows = text
+      .trim()
+      .split("\n")
+      .map(r => r.split(","));
+
+    if (rows.length < 2) throw new Error("No data");
+
+    const headers = rows.shift();
+
+    renderTable(headers, rows);
+
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load report. Make sure the sheet is PUBLISHED as CSV.");
   }
 }
 
