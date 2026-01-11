@@ -86,24 +86,51 @@ function getActiveTab() {
 }
 
 /* =================== LOAD REPORT =================== */
-async function loadReport() {
-  const url = document.getElementById("sheetUrl").value.trim();
-  if (!url) {
-    alert("Please paste Google Sheet CSV URL");
-    return;
-  }
-
+async function loadReport(csvUrl) {
   try {
-    const res = await fetch(url);
-    const text = await res.text();
-    const rows = parseCSV(text);
+    const res = await fetch(csvUrl);
+    if (!res.ok) throw new Error("Fetch failed");
 
-    renderTable(Object.keys(rows[0]), rows);
-    drawTrade(rows);
-    drawEnforcement(rows);
+    const text = await res.text();
+
+    if (!text || !text.trim()) {
+      alert("CSV is empty.");
+      return;
+    }
+
+    // ---- CSV PARSE (SAFE) ----
+    const rows = text
+      .trim()
+      .split("\n")
+      .map(r =>
+        r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+          ?.map(v => v.replace(/^"|"$/g, "").trim()) || []
+      )
+      .filter(r => r.length > 0);
+
+    if (rows.length < 2) {
+      alert("CSV must contain header and at least one row.");
+      return;
+    }
+
+    const headers = rows.shift();
+
+    if (!headers || headers.length === 0) {
+      alert("CSV header row is missing.");
+      return;
+    }
+
+    // ---- STORE TABLE STATE ----
+    tabTables[activeTab] = {
+      headers,
+      rows
+    };
+
+    renderTable(headers, rows);
+
   } catch (err) {
     console.error(err);
-    alert("Failed to load report");
+    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
   }
 }
 
