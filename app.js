@@ -6,10 +6,15 @@ import {
   drawEnforcement,
   saveSnapshot,
   allMapsSnapshots,
-  isMapReady
+  isMapReady,
+  tabStates
 } from "./map.js";
 
-// =================== TABLE STATE ===================
+/* =================== CONFIG & STATE =================== */
+const PASSWORD = "brandorb";
+let activeTab = "origin";
+
+// store table data per tab
 const tabTables = {
   origin: null,
   destination: null,
@@ -17,9 +22,7 @@ const tabTables = {
   routes: null
 };
 
-// =================== LOGIN ===================
-const PASSWORD = "brandorb";
-
+/* =================== DOM READY =================== */
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loginBtn").addEventListener("click", enterApp);
   document.getElementById("logoInput").addEventListener("change", handleLogo);
@@ -29,27 +32,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
-    const tab = getActiveTab();
-    clearTabRoutes(tab);
+    clearTabRoutes(activeTab);
   });
 
   document.getElementById("loadReportBtn").addEventListener("click", () => {
     const url = document.getElementById("sheetUrl").value.trim();
-    if (!url) return alert("Paste a Google Sheet URL (original / normal format, not published /d/e/ link)");
-    const csvUrl = normalizeGoogleCSV(url);
-    loadReport(csvUrl);
+    if (!url) return alert("Paste a published Google Sheet URL");
+    loadReport(url);
   });
 
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
   document.getElementById("saveMapBtn").addEventListener("click", () => {
-    saveSnapshot(getActiveTab());
+    saveSnapshot(activeTab);
     renderAllMaps();
   });
 
   bindTabs();
 });
 
-// =================== LOGIN FUNCTIONS ===================
+/* =================== LOGIN =================== */
 function enterApp() {
   if (document.getElementById("password").value !== PASSWORD) {
     alert("Incorrect password");
@@ -73,7 +74,7 @@ function handleLogo(e) {
   reader.readAsDataURL(file);
 }
 
-// =================== TABS ===================
+/* =================== TABS =================== */
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -92,12 +93,14 @@ function bindTabs() {
       document.getElementById(`map-${view}`).style.display = "block";
       initTabMap(view);
 
-      // restore table if loaded
+      // Restore table if previously loaded for this tab
       if (tabTables[view]) {
         renderTable(tabTables[view].headers, tabTables[view].rows);
       } else {
         clearTable();
       }
+
+      activeTab = view;
     });
   });
 }
@@ -106,13 +109,9 @@ function getActiveTab() {
   return document.querySelector(".tab.active").dataset.view;
 }
 
-// =================== GOOGLE SHEET URL NORMALIZER ===================
+/* =================== GOOGLE SHEET LOADING =================== */
 function normalizeGoogleCSV(url) {
   if (url.includes("gviz/tq")) return url;
-
-  if (url.includes("/d/e/")) {
-    throw new Error("Please paste the original Google Sheet URL (not the /d/e/ published link).");
-  }
 
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!match) throw new Error("Invalid Google Sheet URL");
@@ -120,10 +119,10 @@ function normalizeGoogleCSV(url) {
   return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
 }
 
-// =================== LOAD REPORT ===================
 async function loadReport(csvUrl) {
   try {
-    const res = await fetch(csvUrl);
+    const safeUrl = normalizeGoogleCSV(csvUrl);
+    const res = await fetch(safeUrl);
     if (!res.ok) throw new Error("Fetch failed");
 
     const text = await res.text();
@@ -152,17 +151,16 @@ async function loadReport(csvUrl) {
       return;
     }
 
-    // Save to current tab
-    tabTables[getActiveTab()] = { headers, rows };
+    tabTables[activeTab] = { headers, rows };
     renderTable(headers, rows);
 
   } catch (err) {
     console.error(err);
-    alert("Failed to load report. Make sure the Google Sheet is in original format and published as CSV.");
+    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
   }
 }
 
-// =================== TABLE ===================
+/* =================== TABLE =================== */
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
@@ -193,10 +191,11 @@ function clearTable() {
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
 
-// =================== DOWNLOAD PDF ===================
+/* =================== DOWNLOAD PDF =================== */
 async function downloadReportPDF() {
   const tab = getActiveTab();
-  if (!isMapReady(tab)) {
+  const state = tabStates[tab];
+  if (!state || !state.map) {
     alert("Map not ready");
     return;
   }
@@ -204,75 +203,74 @@ async function downloadReportPDF() {
   const mapNode = document.getElementById(`map-${tab}`);
   const tableNode = document.getElementById("dataTable");
 
-  // ---------------- MAP ----------------
-  const mapRect = mapNode.getBoundingClientRect();
-  const canvasMap = await html2canvas(mapNode, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: null,
-    width: mapRect.width,
-    height: mapRect.height
-  });
+  try {
+    const mapCanvas = await html2canvas(mapNode, { useCORS: true, scale: 2, backgroundColor: null });
 
-  // ---------------- TABLE ----------------
-  const tableClone = tableNode.cloneNode(true);
-  tableClone.style.position = "absolute";
-  tableClone.style.left = "-9999px";
-  tableClone.style.top = "0px";
-  tableClone.style.width = tableNode.offsetWidth + "px";
-  document.body.appendChild(tableClone);
-  await new Promise(r => setTimeout(r, 50)); // wait for render
+    const tableClone = tableNode.cloneNode(true);
+    tableClone.style.position = "absolute";
+    tableClone.style.left = "-9999px";
+    tableClone.style.top = "0px";
+    tableClone.style.width = tableNode.offsetWidth + "px";
+    document.body.appendChild(tableClone);
+    await new Promise(r => setTimeout(r, 50));
 
-  // Header styling
-  tableClone.querySelectorAll("thead th").forEach(th => {
-    th.style.color = "#f0f0f0";      // light font
-    th.style.background = "#333333"; // dark background
-    th.style.fontWeight = "bold";
-  });
+    tableClone.querySelectorAll("thead th").forEach(th => {
+      th.style.color = "#f0f0f0";      // light header
+      th.style.background = "#333333"; 
+      th.style.fontWeight = "bold";
+    });
 
-  // Body styling
-  tableClone.querySelectorAll("tbody tr").forEach(tr => {
-    tr.style.color = "#000000";      // dark font
-    tr.style.background = "#ffffff"; // light background
-  });
+    tableClone.querySelectorAll("tbody tr").forEach(tr => {
+      tr.style.color = "#000000";      // dark body
+      tr.style.background = "#ffffff"; 
+    });
 
-  const canvasTable = await html2canvas(tableClone, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: "#fff"
-  });
+    const tableCanvas = await html2canvas(tableClone, { useCORS: true, scale: 2, backgroundColor: "#fff" });
+    document.body.removeChild(tableClone);
 
-  document.body.removeChild(tableClone);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [mapCanvas.width, mapCanvas.height + tableCanvas.height + 20] });
 
-  // ---------------- CREATE PDF ----------------
-  const { jsPDF } = window.jspdf;
+    pdf.addImage(mapCanvas, "PNG", 0, 0, mapCanvas.width, mapCanvas.height);
+    pdf.addImage(tableCanvas, "PNG", 0, mapCanvas.height + 20, tableCanvas.width, tableCanvas.height);
 
-  // A4 landscape in mm
-  const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const pageWidth = pdf.internal.pageSize.getWidth() - 20; // leave margin 10mm each side
-  const pageHeight = pdf.internal.pageSize.getHeight() - 20;
+    pdf.save(`brandorb-report-${tab}.pdf`);
 
-  // scale map to fit width
-  let mapW = pageWidth;
-  let mapH = (canvasMap.height * mapW) / canvasMap.width;
-  if (mapH > pageHeight * 0.6) {
-    // limit map to max 60% page height
-    mapH = pageHeight * 0.6;
-    mapW = (canvasMap.width * mapH) / canvasMap.height;
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate PDF. See console for details.");
+  }
+}
+
+/* =================== ALL MAPS =================== */
+function renderAllMaps() {
+  const container = document.getElementById("allMapsContainer");
+  container.innerHTML = "";
+
+  if (!allMapsSnapshots.length) {
+    container.innerHTML = "<p>No saved reports</p>";
+    return;
   }
 
-  pdf.addImage(canvasMap, "PNG", 10, 10, mapW, mapH);
+  allMapsSnapshots.forEach((snap, idx) => {
+    const card = document.createElement("div");
+    card.className = "saved-map-card";
 
-  // scale table to fit remaining height
-  let tableW = pageWidth;
-  let tableH = (canvasTable.height * tableW) / canvasTable.width;
-  const tableStartY = 10 + mapH + 5; // 5mm spacing
-  if (tableStartY + tableH > pageHeight + 10) {
-    tableH = pageHeight - tableStartY;
-    tableW = (canvasTable.width * tableH) / canvasTable.height;
-  }
+    card.innerHTML = `
+      <h4>${snap.name}</h4>
+      <small>${snap.timestamp}</small>
+      <img src="${snap.map}" />
+      <img src="${snap.table}" />
+      <button class="delete-btn">Delete</button>
+    `;
 
-  pdf.addImage(canvasTable, "PNG", 10, tableStartY, tableW, tableH);
+    card.querySelector(".delete-btn").onclick = () => {
+      if (confirm("Delete this saved report?")) {
+        allMapsSnapshots.splice(idx, 1);
+        renderAllMaps();
+      }
+    };
 
-  pdf.save(`BrandOrb_Report_${tab}.pdf`);
+    container.appendChild(card);
+  });
 }
