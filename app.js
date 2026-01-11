@@ -25,7 +25,22 @@ document.addEventListener("DOMContentLoaded", () => {
     clearTabRoutes(tab);
   });
 
-  document.getElementById("loadReportBtn").addEventListener("click", loadReport);
+  document.getElementById("loadReportBtn").addEventListener("click", () => {
+  const rawUrl = document.getElementById("sheetUrl").value.trim();
+
+  if (!rawUrl) {
+    alert("Paste Google Sheet URL");
+    return;
+  }
+
+  try {
+    const csvUrl = normalizeGoogleCSV(rawUrl);
+    loadReport(csvUrl);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
   document.getElementById("saveMapBtn").addEventListener("click", () => {
     saveSnapshot(getActiveTab());
@@ -85,8 +100,31 @@ function getActiveTab() {
   return document.querySelector(".tab.active").dataset.view;
 }
 
+// ===============================
+// GOOGLE SHEET URL NORMALIZER
+// ===============================
+function normalizeGoogleCSV(url) {
+  // Already safe
+  if (url.includes("gviz/tq")) return url;
+
+  // Published-to-web URLs are unreliable
+  if (url.includes("/d/e/")) {
+    throw new Error(
+      "Please paste the ORIGINAL Google Sheet URL (not the published /d/e/ link)."
+    );
+  }
+
+  // Normal Google Sheet URL
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error("Invalid Google Sheet URL");
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
+}
+
 /* =================== LOAD REPORT =================== */
-async function loadSheetData(csvUrl) {
+async function loadReport(csvUrl) {
   try {
     const res = await fetch(csvUrl);
     if (!res.ok) throw new Error("Fetch failed");
