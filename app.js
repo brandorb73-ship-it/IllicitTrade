@@ -1,3 +1,5 @@
+import { isMapReady } from "./map.js";
+
 import {
   initTabMap,
   setRouteColor,
@@ -209,12 +211,11 @@ function clearTable() {
 }
 
 async function downloadReport() {
-  const mapNode = document.getElementById("map");
-
-  if (!mapNode) {
-    alert("Map not ready");
-    return; // ✅ legal now
-  }
+  
+if (!isMapReady()) {
+  alert("Map is still loading. Please try again in a second.");
+  return;
+}
 
   // rest of export logic...
 }
