@@ -55,6 +55,22 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loadReportBtn").addEventListener("click", loadSheet);
 });
 
+const loadBtn = document.getElementById("loadReportBtn");
+
+if (loadBtn) {
+  loadBtn.addEventListener("click", () => {
+    const url = document.getElementById("sheetUrl").value.trim();
+
+    if (!url) {
+      alert("Paste a published Google Sheet CSV URL");
+      return;
+    }
+
+    console.log("Loading CSV:", url);
+    loadSheetData(url);
+  });
+}
+
 /* ===============================
    LOGIN
 ================================ */
