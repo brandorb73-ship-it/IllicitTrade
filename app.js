@@ -185,7 +185,7 @@ async function downloadReport() {
     return;
   }
 
-  const mapNode = document.getElementById("map");
+  const mapNode = document.getElementById(`map-${activeTab}`);
   if (!mapNode) {
     alert("Map element not found");
     return;
