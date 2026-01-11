@@ -173,6 +173,11 @@ async function downloadReportPDF() {
   }
 
   const mapNode = document.getElementById(`map-${activeTab}`);
+  const canvasMap = await html2canvas(mapNode, { useCORS: true, scale: 2 }); // scale 2 = higher resolution
+canvasMap.width = mapNode.offsetWidth * 2;
+canvasMap.height = mapNode.offsetHeight * 2;
+
+
   const tableEl = document.getElementById("dataTable");
 
   if (!mapNode || !tableEl) {
