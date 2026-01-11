@@ -136,15 +136,24 @@ export async function saveSnapshot(tabName) {
   const mapNode = document.getElementById(`map-${tabName}`);
   const tableEl = document.getElementById("dataTable");
 
-  const mapCanvas = await html2canvas(mapNode, { useCORS: true, scale: 2 });
-  const tableCanvas = await html2canvas(tableEl, { useCORS: true, scale: 2 });
+  const name = prompt("Enter report name:", `${tabName} - ${new Date().toLocaleString()}`);
+  if (!name) return;
 
-  allMapsSnapshots.push({
-    tab: tabName,
-    map: mapCanvas.toDataURL("image/png"),
-    table: tableCanvas.toDataURL("image/png"),
-    timestamp: new Date().toLocaleString()
-  });
+  try {
+    const mapCanvas = await html2canvas(mapNode, { useCORS: true, scale: 2 });
+    const tableCanvas = await html2canvas(tableEl, { useCORS: true, scale: 2 });
 
-  alert(`Snapshot saved for tab "${tabName}"`);
+    allMapsSnapshots.push({
+      name,
+      tab: tabName,
+      map: mapCanvas.toDataURL("image/png"),
+      table: tableCanvas.toDataURL("image/png"),
+      timestamp: new Date().toLocaleString()
+    });
+
+    alert(`Snapshot "${name}" saved for tab "${tabName}"`);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save snapshot");
+  }
 }
