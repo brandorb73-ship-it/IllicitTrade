@@ -9,7 +9,15 @@ import {
   isMapReady
 } from "./map.js";
 
-/* =================== LOGIN =================== */
+// =================== TABLE STATE ===================
+const tabTables = {
+  origin: null,
+  destination: null,
+  enforcement: null,
+  routes: null
+};
+
+// =================== LOGIN ===================
 const PASSWORD = "brandorb";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -26,20 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("loadReportBtn").addEventListener("click", () => {
-  const rawUrl = document.getElementById("sheetUrl").value.trim();
-
-  if (!rawUrl) {
-    alert("Paste Google Sheet URL");
-    return;
-  }
-
-  try {
-    const csvUrl = normalizeGoogleCSV(rawUrl);
+    const url = document.getElementById("sheetUrl").value.trim();
+    if (!url) return alert("Paste a Google Sheet URL (original / normal format, not published /d/e/ link)");
+    const csvUrl = normalizeGoogleCSV(url);
     loadReport(csvUrl);
-  } catch (err) {
-    alert(err.message);
-  }
-});
+  });
 
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
   document.getElementById("saveMapBtn").addEventListener("click", () => {
@@ -50,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindTabs();
 });
 
-/* =================== LOGIN =================== */
+// =================== LOGIN FUNCTIONS ===================
 function enterApp() {
   if (document.getElementById("password").value !== PASSWORD) {
     alert("Incorrect password");
@@ -74,7 +73,7 @@ function handleLogo(e) {
   reader.readAsDataURL(file);
 }
 
-/* =================== TABS =================== */
+// =================== TABS ===================
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -92,6 +91,13 @@ function bindTabs() {
 
       document.getElementById(`map-${view}`).style.display = "block";
       initTabMap(view);
+
+      // restore table if loaded
+      if (tabTables[view]) {
+        renderTable(tabTables[view].headers, tabTables[view].rows);
+      } else {
+        clearTable();
+      }
     });
   });
 }
@@ -100,30 +106,21 @@ function getActiveTab() {
   return document.querySelector(".tab.active").dataset.view;
 }
 
-// ===============================
-// GOOGLE SHEET URL NORMALIZER
-// ===============================
+// =================== GOOGLE SHEET URL NORMALIZER ===================
 function normalizeGoogleCSV(url) {
-  // Already safe
   if (url.includes("gviz/tq")) return url;
 
-  // Published-to-web URLs are unreliable
   if (url.includes("/d/e/")) {
-    throw new Error(
-      "Please paste the ORIGINAL Google Sheet URL (not the published /d/e/ link)."
-    );
+    throw new Error("Please paste the original Google Sheet URL (not the /d/e/ published link).");
   }
 
-  // Normal Google Sheet URL
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) {
-    throw new Error("Invalid Google Sheet URL");
-  }
+  if (!match) throw new Error("Invalid Google Sheet URL");
 
   return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
 }
 
-/* =================== LOAD REPORT =================== */
+// =================== LOAD REPORT ===================
 async function loadReport(csvUrl) {
   try {
     const res = await fetch(csvUrl);
@@ -155,63 +152,48 @@ async function loadReport(csvUrl) {
       return;
     }
 
-    // 🔒 SAFETY: ensure tab exists
-    if (!tabTables.hasOwnProperty(activeTab)) {
-      alert("Cannot load table in this tab.");
-      return;
-    }
-
-    tabTables[activeTab] = { headers, rows };
+    // Save to current tab
+    tabTables[getActiveTab()] = { headers, rows };
     renderTable(headers, rows);
 
   } catch (err) {
     console.error(err);
-    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
+    alert("Failed to load report. Make sure the Google Sheet is in original format and published as CSV.");
   }
 }
 
-/* =================== CSV =================== */
-function parseCSV(text) {
-  const [header, ...lines] = text.split("\n");
-  const keys = header.split(",").map(h => h.trim());
-
-  return lines
-    .map(l => l.split(","))
-    .filter(r => r.length === keys.length)
-    .map(r => {
-      const obj = {};
-      keys.forEach((k, i) => (obj[k] = r[i]?.trim()));
-      return obj;
-    });
-}
-
-/* =================== TABLE =================== */
+// =================== TABLE ===================
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  const tr = document.createElement("tr");
+  const trh = document.createElement("tr");
   cols.forEach(c => {
     const th = document.createElement("th");
     th.textContent = c;
-    tr.appendChild(th);
+    trh.appendChild(th);
   });
-  thead.appendChild(tr);
+  thead.appendChild(trh);
 
   rows.forEach(r => {
     const tr = document.createElement("tr");
-    cols.forEach(c => {
+    for (let i = 0; i < cols.length; i++) {
       const td = document.createElement("td");
-      td.textContent = r[c];
+      td.textContent = r[i] ?? "";
       tr.appendChild(td);
-    });
+    }
     tbody.appendChild(tr);
   });
 }
 
-/* =================== DOWNLOAD PDF =================== */
+function clearTable() {
+  document.querySelector("#dataTable thead").innerHTML = "";
+  document.querySelector("#dataTable tbody").innerHTML = "";
+}
+
+// =================== DOWNLOAD PDF ===================
 async function downloadReportPDF() {
   const tab = getActiveTab();
   if (!isMapReady(tab)) {
@@ -236,10 +218,10 @@ async function downloadReportPDF() {
   pdf.addPage();
   pdf.addImage(tableCanvas.toDataURL("image/png"), "PNG", 10, 10, w, h);
 
-  pdf.save("BrandOrb_Report.pdf");
+  pdf.save(`BrandOrb_Report_${tab}.pdf`);
 }
 
-/* =================== ALL MAPS VIEW =================== */
+// =================== ALL MAPS VIEW ===================
 function renderAllMaps() {
   const container = document.getElementById("allMapsContainer");
   container.innerHTML = "";
