@@ -109,31 +109,30 @@ function switchTab(tabName) {
   }
 
   // ------------------ ALL MAPS TAB ------------------
-  if (tabName === "allmaps") {
-    const container = document.getElementById("allMapsContainer");
-    container.innerHTML = ""; // clear previous content
+ if (tabName === "allmaps") {
+  const container = document.getElementById("allMapsContainer");
+  container.innerHTML = "";
 
-    if (allMapsSnapshots.length === 0) {
-      container.innerHTML = "<p>No saved maps yet.</p>";
-      return;
-    }
-
-    allMapsSnapshots.forEach((snap, idx) => {
-      const div = document.createElement("div");
-      div.style.marginBottom = "30px";
-      div.style.border = "1px solid #888";
-      div.style.padding = "10px";
-      div.style.background = "#f0f0f0";
-
-      div.innerHTML = `
-        <h4 style="margin-bottom:10px;">${snap.tab.toUpperCase()} - ${snap.timestamp}</h4>
-        <img src="${snap.map}" style="width:100%; max-width:1200px; margin-bottom:10px; border:1px solid #333;" />
-        <img src="${snap.table}" style="width:100%; max-width:1200px; border:1px solid #333;" />
-      `;
-
-      container.appendChild(div);
-    });
+  if (allMapsSnapshots.length === 0) {
+    container.innerHTML = "<p>No saved reports yet.</p>";
+    return;
   }
+
+  allMapsSnapshots.forEach((snap, idx) => {
+    const div = document.createElement("div");
+    div.style.marginBottom = "30px";
+    div.style.border = "1px solid #888";
+    div.style.padding = "10px";
+    div.style.background = "#f0f0f0";
+
+    div.innerHTML = `
+      <h4 style="margin-bottom:10px;">${snap.name} (${snap.tab.toUpperCase()}) - ${snap.timestamp}</h4>
+      <img src="${snap.map}" style="width:100%; max-width:1200px; margin-bottom:10px; border:1px solid #333;" />
+      <img src="${snap.table}" style="width:100%; max-width:1200px; border:1px solid #333;" />
+    `;
+
+    container.appendChild(div);
+  });
 }
 
 /* ===============================
