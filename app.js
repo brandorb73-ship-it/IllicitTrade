@@ -1,10 +1,4 @@
-import { isMapReady } from "./map.js";
-
-import {
-  initTabMap,
-  setRouteColor,
-  clearTabRoutes
-} from "./map.js";
+import { initTabMap, setRouteColor, clearTabRoutes, isMapReady } from "./map.js";
 
 /* ===============================
    CONFIG
@@ -30,15 +24,18 @@ const tabTables = {
 document.addEventListener("DOMContentLoaded", () => {
 
   /* -------- LOGIN -------- */
-  document.getElementById("loginBtn").addEventListener("click", enterApp);
+  const loginBtn = document.getElementById("loginBtn");
+  if (loginBtn) loginBtn.addEventListener("click", enterApp);
 
   /* -------- COLOR PICKER -------- */
-  document.getElementById("routeColorPicker").addEventListener("input", e => {
+  const colorPicker = document.getElementById("routeColorPicker");
+  if (colorPicker) colorPicker.addEventListener("input", e => {
     setRouteColor(e.target.value);
   });
 
   /* -------- CLEAR ROUTES -------- */
-  document.getElementById("clearRoutesBtn").addEventListener("click", () => {
+  const clearBtn = document.getElementById("clearRoutesBtn");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
     clearTabRoutes(activeTab);
   });
 
@@ -54,31 +51,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* -------- LOAD REPORT -------- */
-  document.getElementById("loadReportBtn").addEventListener("click", loadSheet);
-});
-
-const loadBtn = document.getElementById("loadReportBtn");
-
-if (loadBtn) {
-  loadBtn.addEventListener("click", () => {
-    const url = document.getElementById("sheetUrl").value.trim();
-
-    if (!url) {
-      alert("Paste a published Google Sheet CSV URL");
-      return;
-    }
-
-    console.log("Loading CSV:", url);
-    loadSheetData(url);
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const downloadBtn = document.getElementById("downloadReportBtn");
-
-  if (downloadBtn) {
-    downloadBtn.addEventListener("click", downloadReport);
+  const loadBtn = document.getElementById("loadReportBtn");
+  if (loadBtn) {
+    loadBtn.addEventListener("click", () => {
+      const url = document.getElementById("sheetUrl").value.trim();
+      if (!url) {
+        alert("Paste a published Google Sheet CSV URL");
+        return;
+      }
+      loadSheetData(url);
+    });
   }
+
+  /* -------- DOWNLOAD REPORT -------- */
+  const downloadBtn = document.getElementById("downloadReportBtn");
+  if (downloadBtn) downloadBtn.addEventListener("click", downloadReport);
 });
 
 /* ===============================
@@ -106,14 +93,15 @@ function switchTab(tabName) {
 
   // show correct map
   document.querySelectorAll(".tab-map").forEach(m => m.style.display = "none");
-  document.getElementById(`map-${tabName}`).style.display = "block";
+  const mapEl = document.getElementById(`map-${tabName}`);
+  if (mapEl) mapEl.style.display = "block";
 
   // init map if needed
   initTabMap(tabName);
 
   // restore table if already loaded
   if (tabTables[tabName]) {
-    renderTable(tabTables[tabName]);
+    renderTable(tabTables[tabName].headers, tabTables[tabName].rows);
   } else {
     clearTable();
   }
@@ -143,35 +131,13 @@ async function loadSheetData(csvUrl) {
     }
 
     const headers = rows.shift();
+    tabTables[activeTab] = { headers, rows }; // save table per tab
     renderTable(headers, rows);
 
   } catch (err) {
     console.error(err);
     alert("Failed to load report. Make sure the sheet is published as CSV.");
   }
-}
-
-/* ===============================
-   CSV HELPERS
-================================ */
-function convertToCSV(url) {
-  // expects a PUBLIC Google Sheet
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) throw new Error("Invalid Google Sheet URL");
-
-  const sheetId = match[1];
-  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
-}
-
-function parseCSV(text) {
-  const lines = text.split("\n").filter(l => l.trim());
-  const headers = lines.shift().split(",");
-
-  const rows = lines.map(l =>
-    l.split(",").map(v => v.replace(/^"|"$/g, ""))
-  );
-
-  return { headers, rows };
 }
 
 /* ===============================
@@ -193,16 +159,14 @@ export function renderTable(cols, rows) {
   });
   thead.appendChild(trh);
 
-  // ROWS (CRITICAL FIX)
+  // ROWS
   rows.forEach(r => {
     const tr = document.createElement("tr");
-
     for (let i = 0; i < cols.length; i++) {
       const td = document.createElement("td");
-      td.textContent = r[i] ?? ""; // 🔒 column lock
+      td.textContent = r[i] ?? "";
       tr.appendChild(td);
     }
-
     tbody.appendChild(tr);
   });
 }
@@ -212,17 +176,22 @@ function clearTable() {
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
 
+/* ===============================
+   DOWNLOAD REPORT
+================================ */
 async function downloadReport() {
-  // ✅ Check map is ready
   if (!isMapReady()) {
     alert("Map is still loading. Please try again in a second.");
     return;
   }
 
-  // ✅ Get the map element
   const mapNode = document.getElementById("map");
+  if (!mapNode) {
+    alert("Map element not found");
+    return;
+  }
 
-  // ✅ Clone the map for export
+  // Clone map for export
   const clone = mapNode.cloneNode(true);
   clone.style.width = "1200px";
   clone.style.height = "600px";
@@ -233,7 +202,6 @@ async function downloadReport() {
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  // ✅ Grab the SVG inside Leaflet (routes)
   const svg = clone.querySelector("svg");
   if (!svg) {
     alert("Map SVG not ready for export.");
@@ -244,7 +212,6 @@ async function downloadReport() {
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svg);
 
-  // ✅ Draw SVG onto canvas
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 600;
@@ -254,10 +221,8 @@ async function downloadReport() {
   img.onload = () => {
     ctx.drawImage(img, 0, 0);
 
-    // ✅ Get table HTML
     const tableHTML = document.getElementById("dataTable").outerHTML;
 
-    // ✅ Compose final HTML
     const html = `
       <html>
         <body>
@@ -274,7 +239,6 @@ async function downloadReport() {
     a.download = "brandorb-report.html";
     a.click();
 
-    // ✅ Clean up
     document.body.removeChild(wrapper);
   };
 
