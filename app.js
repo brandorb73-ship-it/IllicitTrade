@@ -6,8 +6,7 @@ import {
   drawEnforcement,
   saveSnapshot,
   allMapsSnapshots,
-  isMapReady,
-  tabStates
+  isMapReady
 } from "./map.js";
 
 /* =================== CONFIG & STATE =================== */
