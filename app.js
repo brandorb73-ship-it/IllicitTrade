@@ -71,6 +71,12 @@ if (loadBtn) {
   });
 }
 
+const downloadBtn = document.getElementById("downloadReportBtn");
+
+if (downloadBtn) {
+  downloadBtn.addEventListener("click", downloadReport);
+}
+
 /* ===============================
    LOGIN
 ================================ */
@@ -201,8 +207,13 @@ function clearTable() {
   document.querySelector("#dataTable thead").innerHTML = "";
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
-document.getElementById("downloadReportBtn").onclick = async () => {
+
+async function downloadReport() {
   const mapNode = document.getElementById("map");
+
+  // ⬇️ KEEP YOUR EXISTING EXPORT LOGIC HERE ⬇️
+  // (do not change what already works)
+}
 
   const clone = mapNode.cloneNode(true);
   clone.style.width = "1200px";
