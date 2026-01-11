@@ -50,6 +50,17 @@ document.querySelectorAll(".tab").forEach(tab => {
   });
 });
 
+import { saveSnapshot } from "./map.js";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const saveBtn = document.getElementById("saveMapBtn");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      saveSnapshot(activeTab);
+    });
+  }
+});
+
 /* ===============================
    LOGIN
 ================================ */
