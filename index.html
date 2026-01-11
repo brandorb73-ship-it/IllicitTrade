@@ -24,10 +24,13 @@
 
 <!-- APP -->
 <div id="app" style="display:none">
-  <header class="app-header">
-    <img id="logoPreviewHeader" />
-    <h1>ILLICIT TRADE INTELLIGENCE</h1>
-  </header>
+ <header class="app-header">
+  <img id="logoPreviewHeader" />
+  <h1>ILLICIT TRADE INTELLIGENCE</h1>
+  <button id="downloadReportBtn" class="download-btn">
+    Download Report
+  </button>
+</header>
 
   <!-- Route Color Picker and Clear -->
   <input type="color" id="routeColorPicker" value="#ff0000" />
@@ -72,6 +75,5 @@
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
 <!-- Your app JS -->
 <script type="module" src="app.js"></script>
-  <button id="downloadReportBtn">Download Report</button>
 </body>
 </html>
