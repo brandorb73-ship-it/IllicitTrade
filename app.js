@@ -143,28 +143,32 @@ function parseCSV(text) {
 /* ===============================
    TABLE RENDERING
 ================================ */
-function renderTable(data) {
+export function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
 
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  const tr = document.createElement("tr");
-  data.headers.forEach(h => {
+  // HEADER
+  const trh = document.createElement("tr");
+  cols.forEach(c => {
     const th = document.createElement("th");
-    th.textContent = h;
-    tr.appendChild(th);
+    th.textContent = c;
+    trh.appendChild(th);
   });
-  thead.appendChild(tr);
+  thead.appendChild(trh);
 
-  data.rows.forEach(r => {
+  // ROWS (CRITICAL FIX)
+  rows.forEach(r => {
     const tr = document.createElement("tr");
-    r.forEach(c => {
+
+    for (let i = 0; i < cols.length; i++) {
       const td = document.createElement("td");
-      td.textContent = c;
+      td.textContent = r[i] ?? ""; // 🔒 column lock
       tr.appendChild(td);
-    });
+    }
+
     tbody.appendChild(tr);
   });
 }
@@ -173,28 +177,58 @@ function clearTable() {
   document.querySelector("#dataTable thead").innerHTML = "";
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
-document.getElementById("downloadReportBtn").onclick = () => {
-  const table = document.getElementById("dataTable").outerHTML;
+document.getElementById("downloadReportBtn").onclick = async () => {
+  const mapNode = document.getElementById("map");
 
-  const mapCanvas = document.querySelector("#map canvas");
-  const mapImage = mapCanvas
-    ? mapCanvas.toDataURL("image/png")
-    : "";
+  const clone = mapNode.cloneNode(true);
+  clone.style.width = "1200px";
+  clone.style.height = "600px";
 
-  const html = `
-    <html>
-    <head><meta charset="UTF-8"></head>
-    <body>
-      <h2>BRANDORB Report</h2>
-      ${mapImage ? `<img src="${mapImage}" style="width:100%">` : ""}
-      ${table}
-    </body>
-    </html>
-  `;
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-9999px";
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
 
-  const blob = new Blob([html], { type: "text/html" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "brandorb-report.html";
-  a.click();
+  const svg = clone.querySelector("svg");
+  if (!svg) {
+    alert("Map not ready yet");
+    return;
+  }
+
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(svg);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 600;
+
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
+
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0);
+
+    const tableHTML = document.getElementById("dataTable").outerHTML;
+
+    const html = `
+      <html>
+      <body>
+        <h2>BRANDORB Report</h2>
+        <img src="${canvas.toDataURL("image/png")}" />
+        ${tableHTML}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "brandorb-report.html";
+    a.click();
+
+    document.body.removeChild(wrapper);
+  };
+
+  img.src = "data:image/svg+xml;base64," + btoa(svgStr);
 };
