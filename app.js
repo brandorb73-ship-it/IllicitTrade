@@ -9,7 +9,9 @@ import {
   isMapReady
 } from "./map.js";
 
-// =================== TABLE STATE ===================
+/* =================== CONFIG & STATE =================== */
+const PASSWORD = "brandorb";
+let activeTab = "origin";
 const tabTables = {
   origin: null,
   destination: null,
@@ -17,48 +19,53 @@ const tabTables = {
   routes: null
 };
 
-// =================== LOGIN ===================
-const PASSWORD = "brandorb";
-
+/* =================== DOM READY =================== */
 document.addEventListener("DOMContentLoaded", () => {
+  // LOGIN
   document.getElementById("loginBtn").addEventListener("click", enterApp);
   document.getElementById("logoInput").addEventListener("change", handleLogo);
 
+  // ROUTE COLOR PICKER
   document.getElementById("routeColorPicker").addEventListener("change", e => {
     setRouteColor(e.target.value);
   });
 
+  // CLEAR ROUTES
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
-    const tab = getActiveTab();
-    clearTabRoutes(tab);
+    clearTabRoutes(activeTab);
   });
 
+  // LOAD REPORT
   document.getElementById("loadReportBtn").addEventListener("click", () => {
     const url = document.getElementById("sheetUrl").value.trim();
-    if (!url) return alert("Paste a Google Sheet URL (original / normal format, not published /d/e/ link)");
-    const csvUrl = normalizeGoogleCSV(url);
-    loadReport(csvUrl);
+    if (!url) return alert("Paste a published Google Sheet CSV URL");
+    loadReport(url);
   });
 
+  // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
+
+  // SAVE MAP & TABLE SNAPSHOT
   document.getElementById("saveMapBtn").addEventListener("click", () => {
-    saveSnapshot(getActiveTab());
+    saveSnapshotTab(activeTab);
     renderAllMaps();
   });
 
+  // TAB SWITCHING
   bindTabs();
 });
 
-// =================== LOGIN FUNCTIONS ===================
+/* =================== LOGIN =================== */
 function enterApp() {
   if (document.getElementById("password").value !== PASSWORD) {
     alert("Incorrect password");
     return;
   }
+
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  initTabMap("origin");
+  initTabMap(activeTab);
 }
 
 function handleLogo(e) {
@@ -73,7 +80,7 @@ function handleLogo(e) {
   reader.readAsDataURL(file);
 }
 
-// =================== TABS ===================
+/* =================== TAB SWITCHING =================== */
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -92,37 +99,29 @@ function bindTabs() {
       document.getElementById(`map-${view}`).style.display = "block";
       initTabMap(view);
 
-      // restore table if loaded
+      // Restore table if exists
       if (tabTables[view]) {
         renderTable(tabTables[view].headers, tabTables[view].rows);
       } else {
         clearTable();
       }
+
+      activeTab = view;
     });
   });
 }
 
+/* =================== ACTIVE TAB =================== */
 function getActiveTab() {
   return document.querySelector(".tab.active").dataset.view;
 }
 
-// =================== GOOGLE SHEET URL NORMALIZER ===================
-function normalizeGoogleCSV(url) {
-  if (url.includes("gviz/tq")) return url;
-
-  if (url.includes("/d/e/")) {
-    throw new Error("Please paste the original Google Sheet URL (not the /d/e/ published link).");
-  }
-
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) throw new Error("Invalid Google Sheet URL");
-
-  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
-}
-
-// =================== LOAD REPORT ===================
-async function loadReport(csvUrl) {
+/* =================== GOOGLE SHEET LOADING =================== */
+async function loadReport(sheetUrl) {
   try {
+    // Normalize Google Sheet URL for CSV
+    const csvUrl = normalizeGoogleCSV(sheetUrl);
+
     const res = await fetch(csvUrl);
     if (!res.ok) throw new Error("Fetch failed");
 
@@ -132,13 +131,11 @@ async function loadReport(csvUrl) {
       return;
     }
 
+    // Parse CSV safely
     const rows = text
       .trim()
       .split("\n")
-      .map(r =>
-        r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-          ?.map(v => v.replace(/^"|"$/g, "").trim()) || []
-      )
+      .map(r => r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, "").trim()) || [])
       .filter(r => r.length > 0);
 
     if (rows.length < 2) {
@@ -147,41 +144,58 @@ async function loadReport(csvUrl) {
     }
 
     const headers = rows.shift();
-    if (!headers || headers.length === 0) {
-      alert("CSV header row is missing.");
-      return;
-    }
+    tabTables[activeTab] = { headers, rows };
 
-    // Save to current tab
-    tabTables[getActiveTab()] = { headers, rows };
     renderTable(headers, rows);
-
   } catch (err) {
     console.error(err);
-    alert("Failed to load report. Make sure the Google Sheet is in original format and published as CSV.");
+    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
   }
 }
 
-// =================== TABLE ===================
+function normalizeGoogleCSV(url) {
+  // Already in gviz format
+  if (url.includes("gviz/tq")) return url;
+
+  // /d/e/ published URL
+  if (url.includes("/d/e/")) {
+    throw new Error("Use the ORIGINAL Google Sheet URL, not the /d/e/ link.");
+  }
+
+  // Normal Google Sheet URL
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) throw new Error("Invalid Google Sheet URL");
+
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
+}
+
+/* =================== TABLE =================== */
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
+  // HEADER
   const trh = document.createElement("tr");
   cols.forEach(c => {
     const th = document.createElement("th");
     th.textContent = c;
+    th.style.color = "#f0f0f0";      // light header
+    th.style.background = "#333333"; // dark background
+    th.style.fontWeight = "bold";
     trh.appendChild(th);
   });
   thead.appendChild(trh);
 
+  // ROWS
   rows.forEach(r => {
     const tr = document.createElement("tr");
     for (let i = 0; i < cols.length; i++) {
       const td = document.createElement("td");
       td.textContent = r[i] ?? "";
+      td.style.color = "#000000";      // dark text
+      td.style.background = "#ffffff"; // light row
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -193,7 +207,7 @@ function clearTable() {
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
 
-// =================== DOWNLOAD PDF ===================
+/* =================== DOWNLOAD PDF =================== */
 async function downloadReportPDF() {
   const tab = getActiveTab();
   if (!isMapReady(tab)) {
@@ -204,8 +218,9 @@ async function downloadReportPDF() {
   const mapNode = document.getElementById(`map-${tab}`);
   const tableNode = document.getElementById("dataTable");
 
-  const mapCanvas = await html2canvas(mapNode, { scale: 2, useCORS: true });
-  const tableCanvas = await html2canvas(tableNode, { scale: 2 });
+  // Map canvas
+  const mapCanvas = await html2canvas(mapNode, { scale: 1, useCORS: true });
+  const tableCanvas = await html2canvas(tableNode, { scale: 1 });
 
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF("p", "mm", "a4");
@@ -221,7 +236,32 @@ async function downloadReportPDF() {
   pdf.save(`BrandOrb_Report_${tab}.pdf`);
 }
 
-// =================== ALL MAPS VIEW ===================
+/* =================== SAVE SNAPSHOT =================== */
+function saveSnapshotTab(tab) {
+  const mapNode = document.getElementById(`map-${tab}`);
+  const tableNode = document.getElementById("dataTable");
+
+  if (!mapNode) {
+    alert("Map not ready");
+    return;
+  }
+
+  html2canvas(mapNode, { scale: 1 }).then(mapCanvas => {
+    html2canvas(tableNode, { scale: 1 }).then(tableCanvas => {
+      const snap = {
+        name: `Snapshot ${tab} ${new Date().toLocaleString()}`,
+        tab,
+        timestamp: new Date().toLocaleString(),
+        map: mapCanvas.toDataURL(),
+        table: tableCanvas.toDataURL()
+      };
+      allMapsSnapshots.push(snap);
+      alert("Snapshot saved!");
+    });
+  });
+}
+
+/* =================== ALL MAPS VIEW =================== */
 function renderAllMaps() {
   const container = document.getElementById("allMapsContainer");
   container.innerHTML = "";
@@ -231,15 +271,15 @@ function renderAllMaps() {
     return;
   }
 
-  allMapsSnapshots.forEach((s, idx) => {
+  allMapsSnapshots.forEach((snap, idx) => {
     const card = document.createElement("div");
     card.className = "saved-map-card";
 
     card.innerHTML = `
-      <h4>${s.name}</h4>
-      <small>${s.timestamp}</small>
-      <img src="${s.map}" />
-      <img src="${s.table}" />
+      <h4>${snap.name}</h4>
+      <small>${snap.timestamp}</small>
+      <img src="${snap.map}" />
+      <img src="${snap.table}" />
       <button class="delete-btn">Delete</button>
     `;
 
