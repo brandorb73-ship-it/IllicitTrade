@@ -171,7 +171,7 @@ async function loadSheetData(csvUrl) {
 /* ===============================
    TABLE RENDERING
 ================================ */
-export function renderTable(cols, rows) {
+function renderTable(cols, rows) { ... }
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
 
