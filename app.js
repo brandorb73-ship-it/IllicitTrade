@@ -12,6 +12,8 @@ import {
 /* =================== CONFIG & STATE =================== */
 const PASSWORD = "brandorb";
 let activeTab = "origin";
+
+// Store both the table data AND the specific URL for each tab
 const tabTables = {
   origin: null,
   destination: null,
@@ -19,6 +21,12 @@ const tabTables = {
   routes: null
 };
 
+const tabUrls = {
+  origin: "",
+  destination: "",
+  enforcement: "",
+  routes: ""
+};
 /* =================== DOM READY =================== */
 document.addEventListener("DOMContentLoaded", () => {
   // LOGIN
@@ -84,6 +92,7 @@ function handleLogo(e) {
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
+      // 1. UI updates for tabs
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
@@ -99,7 +108,11 @@ function bindTabs() {
       document.getElementById(`map-${view}`).style.display = "block";
       initTabMap(view);
 
-      // Restore table if exists
+      // 2. INDEPENDENT URL BOX: Restore the URL specific to this tab
+      const urlInput = document.getElementById("sheetUrl");
+      urlInput.value = tabUrls[view] || ""; 
+
+      // 3. Restore table if exists
       if (tabTables[view]) {
         renderTable(tabTables[view].headers, tabTables[view].rows);
       } else {
