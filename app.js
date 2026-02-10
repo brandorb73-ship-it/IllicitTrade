@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setRouteColor(e.target.value);
   });
 
-  // CLEAR ROUTES (Map Lines)
+  // CLEAR ROUTES (Map lines only)
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
     clearTabRoutes(activeTab);
   });
@@ -50,27 +50,40 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (!url) return alert("Paste a published Google Sheet CSV URL");
     
-    // Save it to state immediately so the loader knows which tab it belongs to
     tabUrls[activeTab] = url; 
     loadReport(url);
   });
 
-  // CLEAR DATA (Table & Memory)
+  // CLEAR DATA (Wipe Table and Memory)
   document.getElementById("clearDataBtn").addEventListener("click", () => {
-    // 1. Wipe the memory for the current tab
-    tabTables[activeTab] = null;
-    tabUrls[activeTab] = "";
-    
-    // 2. Wipe the UI
-    document.getElementById("sheetUrl").value = "";
-    clearTable(); 
-
-    // 3. Clear the Map routes
-    clearTabRoutes(activeTab); 
-    
-    alert("Data cleared for " + activeTab);
+    if (confirm("Clear all data for " + activeTab + "?")) {
+      // 1. Wipe memory
+      tabTables[activeTab] = null;
+      tabUrls[activeTab] = "";
+      
+      // 2. Wipe UI
+      document.getElementById("sheetUrl").value = "";
+      clearTable(); 
+      
+      // 3. Clear Map
+      clearTabRoutes(activeTab); 
+      
+      alert("Data cleared for " + activeTab);
+    }
   });
 
+  // DOWNLOAD PDF
+  document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
+
+  // SAVE MAP & TABLE SNAPSHOT
+  document.getElementById("saveMapBtn").addEventListener("click", () => {
+    saveSnapshotTab(activeTab);
+    renderAllMaps();
+  });
+
+  // TAB SWITCHING
+  bindTabs();
+}); // <--- This correctly closes DOMContentLoaded
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
 
