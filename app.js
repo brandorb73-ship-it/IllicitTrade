@@ -44,11 +44,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // LOAD REPORT
-  document.getElementById("loadReportBtn").addEventListener("click", () => {
-    const url = document.getElementById("sheetUrl").value.trim();
-    if (!url) return alert("Paste a published Google Sheet CSV URL");
-    loadReport(url);
-  });
+document.getElementById("loadReportBtn").addEventListener("click", () => {
+  const urlInput = document.getElementById("sheetUrl");
+  const url = urlInput.value.trim();
+  
+  if (!url) return alert("Paste a published Google Sheet CSV URL");
+  
+  // Save it to state immediately so the loader knows which tab it belongs to
+  tabUrls[activeTab] = url; 
+  loadReport(url);
+});
 
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
@@ -130,11 +135,9 @@ function getActiveTab() {
 }
 
 /* =================== GOOGLE SHEET LOADING =================== */
+/* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
-    // Save the URL to the specific tab's memory before fetching
-    tabUrls[activeTab] = sheetUrl;
-
     const csvUrl = normalizeGoogleCSV(sheetUrl);
 
     const res = await fetch(csvUrl);
@@ -146,6 +149,7 @@ async function loadReport(sheetUrl) {
       return;
     }
 
+    // Parse CSV safely
     const rows = text
       .trim()
       .split("\n")
@@ -158,15 +162,19 @@ async function loadReport(sheetUrl) {
     }
 
     const headers = rows.shift();
+    
+    // IMPORTANT: Save data to the SPECIFIC active tab state
     tabTables[activeTab] = { headers, rows };
 
+    // Render the table immediately for the current view
     renderTable(headers, rows);
+    
+    console.log(`Loaded data for tab: ${activeTab}`);
   } catch (err) {
     console.error(err);
     alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
   }
 }
-
 function normalizeGoogleCSV(url) {
   // Already in gviz format
   if (url.includes("gviz/tq")) return url;
