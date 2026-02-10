@@ -55,17 +55,15 @@ document.getElementById("loadReportBtn").addEventListener("click", () => {
   loadReport(url);
 });
 
-  // Inside document.addEventListener("DOMContentLoaded", () => { ...
-
 document.getElementById("clearDataBtn").addEventListener("click", () => {
-  if (confirm("Are you sure you want to clear data for this tab?")) {
-    // 1. Clear the state for the active tab
-    tabTables[activeTab] = null;
-    tabUrls[activeTab] = "";
-    
-    // 2. Clear the UI
-    document.getElementById("sheetUrl").value = "";
-    clearTable();
+  // Wipe the memory for the current tab
+  tabTables[activeTab] = null;
+  tabUrls[activeTab] = "";
+  
+  // Wipe the UI
+  document.getElementById("sheetUrl").value = "";
+  clearTable(); // This calls your existing function to empty the <thead>/<tbody>
+});
     
     // 3. Clear the Map (This function should be in your map.js)
     clearTabRoutes(activeTab); 
@@ -155,18 +153,20 @@ function getActiveTab() {
 /* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
-    const csvUrl = normalizeGoogleCSV(sheetUrl);
+    // 1. Force state update for the URL
+    tabUrls[activeTab] = sheetUrl;
 
-    const res = await fetch(csvUrl);
+    const csvUrl = normalizeGoogleCSV(sheetUrl);
+    
+    // Add a timestamp to the URL to bypass browser/Google caching
+    const finalUrl = csvUrl + "&t=" + new Date().getTime();
+
+    const res = await fetch(finalUrl);
     if (!res.ok) throw new Error("Fetch failed");
 
     const text = await res.text();
-    if (!text || !text.trim()) {
-      alert("CSV is empty.");
-      return;
-    }
-
-    // Parse CSV safely
+    
+    // 2. Parse CSV
     const rows = text
       .trim()
       .split("\n")
@@ -174,19 +174,18 @@ async function loadReport(sheetUrl) {
       .filter(r => r.length > 0);
 
     if (rows.length < 2) {
-      alert("CSV must contain header and at least one row.");
+      alert("CSV is empty.");
       return;
     }
 
     const headers = rows.shift();
-    
-    // IMPORTANT: Save data to the SPECIFIC active tab state
+
+    // 3. CRITICAL: Overwrite the specific tab's data with the NEW results
     tabTables[activeTab] = { headers, rows };
 
-    // Render the table immediately for the current view
+    // 4. Update the Table UI immediately
     renderTable(headers, rows);
-    
-    console.log(`Loaded data for tab: ${activeTab}`);
+
   } catch (err) {
     console.error(err);
     alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
@@ -208,43 +207,37 @@ function normalizeGoogleCSV(url) {
   return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
 }
 
-/* =================== TABLE =================== */
+/* =================== TABLE UI =================== */
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
-  
-  // CRITICAL: Wipe everything first
+
+  // ALWAYS clear the table before adding new content
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
   if (!cols || !rows) return;
 
-  // HEADER
+  // Render Headers
   const trh = document.createElement("tr");
   cols.forEach(c => {
     const th = document.createElement("th");
     th.textContent = c;
-    th.style.color = "#f0f0f0";      // light header
-    th.style.background = "#333333"; // dark background
-    th.style.fontWeight = "bold";
     trh.appendChild(th);
   });
   thead.appendChild(trh);
 
-  // ROWS
+  // Render Rows
   rows.forEach(r => {
     const tr = document.createElement("tr");
-    for (let i = 0; i < cols.length; i++) {
+    r.forEach(cell => {
       const td = document.createElement("td");
-      td.textContent = r[i] ?? "";
-      td.style.color = "#000000";      // dark text
-      td.style.background = "#ffffff"; // light row
+      td.textContent = cell ?? "";
       tr.appendChild(td);
-    }
+    });
     tbody.appendChild(tr);
   });
 }
-
 function clearTable() {
   document.querySelector("#dataTable thead").innerHTML = "";
   document.querySelector("#dataTable tbody").innerHTML = "";
