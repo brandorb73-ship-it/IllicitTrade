@@ -132,7 +132,9 @@ function getActiveTab() {
 /* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
-    // Normalize Google Sheet URL for CSV
+    // Save the URL to the specific tab's memory before fetching
+    tabUrls[activeTab] = sheetUrl;
+
     const csvUrl = normalizeGoogleCSV(sheetUrl);
 
     const res = await fetch(csvUrl);
@@ -144,7 +146,6 @@ async function loadReport(sheetUrl) {
       return;
     }
 
-    // Parse CSV safely
     const rows = text
       .trim()
       .split("\n")
