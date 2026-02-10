@@ -12,8 +12,6 @@ import {
 /* =================== CONFIG & STATE =================== */
 const PASSWORD = "brandorb";
 let activeTab = "origin";
-
-// Store both the table data AND the specific URL for each tab
 const tabTables = {
   origin: null,
   destination: null,
@@ -27,6 +25,7 @@ const tabUrls = {
   enforcement: "",
   routes: ""
 };
+
 /* =================== DOM READY =================== */
 document.addEventListener("DOMContentLoaded", () => {
   // LOGIN
@@ -38,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setRouteColor(e.target.value);
   });
 
-  // CLEAR ROUTES
+  // CLEAR ROUTES (Map Lines)
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
     clearTabRoutes(activeTab);
   });
@@ -53,9 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
     loadReport(url);
   });
 
-  // CLEAR DATA
+  // CLEAR DATA (Wipe Table and Memory)
   document.getElementById("clearDataBtn").addEventListener("click", () => {
-    if (confirm("Clear data for " + activeTab + "?")) {
+    if (confirm("Clear all data for " + activeTab + "?")) {
       tabTables[activeTab] = null;
       tabUrls[activeTab] = "";
       document.getElementById("sheetUrl").value = "";
@@ -63,17 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
       clearTabRoutes(activeTab);
       alert("Data cleared for " + activeTab);
     }
-  }); // <-- This closes the click function
-
-  // REMAINING LISTENERS
-  document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
-  document.getElementById("saveMapBtn").addEventListener("click", () => {
-    saveSnapshotTab(activeTab);
-    renderAllMaps();
   });
 
-  bindTabs();
-}); // <-- This closes DOMContentLoaded
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
 
@@ -83,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAllMaps();
   });
 
-  // TAB SWITCHING
   bindTabs();
 });
 
@@ -116,7 +105,6 @@ function handleLogo(e) {
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
-      // 1. UI updates for tabs
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
 
@@ -132,11 +120,10 @@ function bindTabs() {
       document.getElementById(`map-${view}`).style.display = "block";
       initTabMap(view);
 
-      // 2. INDEPENDENT URL BOX: Restore the URL specific to this tab
-      const urlInput = document.getElementById("sheetUrl");
-      urlInput.value = tabUrls[view] || ""; 
+      // Restore URL for this tab
+      document.getElementById("sheetUrl").value = tabUrls[view] || "";
 
-      // 3. Restore table if exists
+      // Restore table if exists
       if (tabTables[view]) {
         renderTable(tabTables[view].headers, tabTables[view].rows);
       } else {
@@ -148,7 +135,6 @@ function bindTabs() {
   });
 }
 
-/* =================== ACTIVE TAB =================== */
 function getActiveTab() {
   return document.querySelector(".tab.active").dataset.view;
 }
@@ -156,70 +142,59 @@ function getActiveTab() {
 /* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
-    // 1. Immediately clear the current tab's table memory
-    tabTables[activeTab] = null; 
-    clearTable(); // Clear the UI immediately so the user sees it's loading
+    // Clear old data visually immediately
+    clearTable();
 
-    const csvUrl = normalizeGoogleCSV(sheetUrl);
+    // Normalizing with a timestamp to bypass browser cache (fixes the "Old Table" issue)
+    const csvUrl = normalizeGoogleCSV(sheetUrl) + `&t=${new Date().getTime()}`;
+
     const res = await fetch(csvUrl);
-    
     if (!res.ok) throw new Error("Fetch failed");
 
     const text = await res.text();
-    
-    // Parse CSV
-    const rows = text.trim().split("\n")
-      .map(r => r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, "").trim()) || [])
-      .filter(r => r.length > 0);
-
-    if (rows.length < 2) {
+    if (!text || !text.trim()) {
       alert("CSV is empty.");
       return;
     }
 
+    const rows = text
+      .trim()
+      .split("\n")
+      .map(r => r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, "").trim()) || [])
+      .filter(r => r.length > 0);
+
+    if (rows.length < 2) {
+      alert("CSV must contain header and at least one row.");
+      return;
+    }
+
     const headers = rows.shift();
-
-    // 2. Save the NEW data to the specific active tab
     tabTables[activeTab] = { headers, rows };
-    tabUrls[activeTab] = sheetUrl;
 
-    // 3. Render the NEW table
     renderTable(headers, rows);
-
   } catch (err) {
     console.error(err);
-    alert("Failed to load report. Ensure the Google Sheet is shared correctly.");
+    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
   }
 }
+
 function normalizeGoogleCSV(url) {
-  // Already in gviz format
   if (url.includes("gviz/tq")) return url;
+  if (url.includes("/d/e/")) throw new Error("Use ORIGINAL URL, not /d/e/ link.");
 
-  // /d/e/ published URL
-  if (url.includes("/d/e/")) {
-    throw new Error("Use the ORIGINAL Google Sheet URL, not the /d/e/ link.");
-  }
-
-  // Normal Google Sheet URL
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!match) throw new Error("Invalid Google Sheet URL");
 
-  // ADDED: &t= + Date.now() to bypass browser caching
-  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
 }
 
-/* =================== TABLE UI =================== */
+/* =================== TABLE =================== */
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
-
-  // ALWAYS clear the table before adding new content
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  if (!cols || !rows) return;
-
-  // Render Headers
   const trh = document.createElement("tr");
   cols.forEach(c => {
     const th = document.createElement("th");
@@ -228,22 +203,24 @@ function renderTable(cols, rows) {
   });
   thead.appendChild(trh);
 
-  // Render Rows
   rows.forEach(r => {
     const tr = document.createElement("tr");
-    r.forEach(cell => {
+    for (let i = 0; i < cols.length; i++) {
       const td = document.createElement("td");
-      td.textContent = cell ?? "";
+      td.textContent = r[i] ?? "";
       tr.appendChild(td);
-    });
+    }
     tbody.appendChild(tr);
   });
 }
+
 function clearTable() {
   document.querySelector("#dataTable thead").innerHTML = "";
   document.querySelector("#dataTable tbody").innerHTML = "";
 }
 
+/* =================== REMAINING UTILS (PDF, SNAPSHOT, ETC) =================== */
+// ... (Keep your existing downloadReportPDF, saveSnapshotTab, and renderAllMaps here)
 /* =================== DOWNLOAD PDF =================== */
 async function downloadReportPDF() {
   const tab = getActiveTab();
