@@ -38,38 +38,50 @@ document.addEventListener("DOMContentLoaded", () => {
     setRouteColor(e.target.value);
   });
 
-  // CLEAR ROUTES
+  // CLEAR ROUTES (Map Lines)
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
     clearTabRoutes(activeTab);
   });
 
   // LOAD REPORT
-document.getElementById("loadReportBtn").addEventListener("click", () => {
-  const urlInput = document.getElementById("sheetUrl");
-  const url = urlInput.value.trim();
-  
-  if (!url) return alert("Paste a published Google Sheet CSV URL");
-  
-  // Save it to state immediately so the loader knows which tab it belongs to
-  tabUrls[activeTab] = url; 
-  loadReport(url);
-});
-
-document.getElementById("clearDataBtn").addEventListener("click", () => {
-  // Wipe the memory for the current tab
-  tabTables[activeTab] = null;
-  tabUrls[activeTab] = "";
-  
-  // Wipe the UI
-  document.getElementById("sheetUrl").value = "";
-  clearTable(); // This calls your existing function to empty the <thead>/<tbody>
-});
+  document.getElementById("loadReportBtn").addEventListener("click", () => {
+    const urlInput = document.getElementById("sheetUrl");
+    const url = urlInput.value.trim();
     
-    // 3. Clear the Map (This function should be in your map.js)
+    if (!url) return alert("Paste a published Google Sheet CSV URL");
+    
+    // Save it to state immediately so the loader knows which tab it belongs to
+    tabUrls[activeTab] = url; 
+    loadReport(url);
+  });
+
+  // CLEAR DATA (Table & Memory)
+  document.getElementById("clearDataBtn").addEventListener("click", () => {
+    // 1. Wipe the memory for the current tab
+    tabTables[activeTab] = null;
+    tabUrls[activeTab] = "";
+    
+    // 2. Wipe the UI
+    document.getElementById("sheetUrl").value = "";
+    clearTable(); 
+
+    // 3. Clear the Map routes
     clearTabRoutes(activeTab); 
     
     alert("Data cleared for " + activeTab);
-  }
+  });
+
+  // DOWNLOAD PDF
+  document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
+
+  // SAVE MAP & TABLE SNAPSHOT
+  document.getElementById("saveMapBtn").addEventListener("click", () => {
+    saveSnapshotTab(activeTab);
+    renderAllMaps();
+  });
+
+  // Initialize Tabs
+  bindTabs();
 });
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
