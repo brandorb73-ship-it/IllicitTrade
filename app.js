@@ -153,23 +153,19 @@ function getActiveTab() {
 /* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
-    // 1. Force state update for the URL
-    tabUrls[activeTab] = sheetUrl;
+    // 1. Immediately clear the current tab's table memory
+    tabTables[activeTab] = null; 
+    clearTable(); // Clear the UI immediately so the user sees it's loading
 
     const csvUrl = normalizeGoogleCSV(sheetUrl);
+    const res = await fetch(csvUrl);
     
-    // Add a timestamp to the URL to bypass browser/Google caching
-    const finalUrl = csvUrl + "&t=" + new Date().getTime();
-
-    const res = await fetch(finalUrl);
     if (!res.ok) throw new Error("Fetch failed");
 
     const text = await res.text();
     
-    // 2. Parse CSV
-    const rows = text
-      .trim()
-      .split("\n")
+    // Parse CSV
+    const rows = text.trim().split("\n")
       .map(r => r.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, "").trim()) || [])
       .filter(r => r.length > 0);
 
@@ -180,15 +176,16 @@ async function loadReport(sheetUrl) {
 
     const headers = rows.shift();
 
-    // 3. CRITICAL: Overwrite the specific tab's data with the NEW results
+    // 2. Save the NEW data to the specific active tab
     tabTables[activeTab] = { headers, rows };
+    tabUrls[activeTab] = sheetUrl;
 
-    // 4. Update the Table UI immediately
+    // 3. Render the NEW table
     renderTable(headers, rows);
 
   } catch (err) {
     console.error(err);
-    alert("Failed to load report. Ensure the Google Sheet is published as CSV.");
+    alert("Failed to load report. Ensure the Google Sheet is shared correctly.");
   }
 }
 function normalizeGoogleCSV(url) {
@@ -204,7 +201,8 @@ function normalizeGoogleCSV(url) {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!match) throw new Error("Invalid Google Sheet URL");
 
-  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv`;
+  // ADDED: &t= + Date.now() to bypass browser caching
+  return `https://docs.google.com/spreadsheets/d/${match[1]}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
 }
 
 /* =================== TABLE UI =================== */
