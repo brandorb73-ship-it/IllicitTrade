@@ -55,6 +55,24 @@ document.getElementById("loadReportBtn").addEventListener("click", () => {
   loadReport(url);
 });
 
+  // Inside document.addEventListener("DOMContentLoaded", () => { ...
+
+document.getElementById("clearDataBtn").addEventListener("click", () => {
+  if (confirm("Are you sure you want to clear data for this tab?")) {
+    // 1. Clear the state for the active tab
+    tabTables[activeTab] = null;
+    tabUrls[activeTab] = "";
+    
+    // 2. Clear the UI
+    document.getElementById("sheetUrl").value = "";
+    clearTable();
+    
+    // 3. Clear the Map (This function should be in your map.js)
+    clearTabRoutes(activeTab); 
+    
+    alert("Data cleared for " + activeTab);
+  }
+});
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
 
@@ -135,7 +153,6 @@ function getActiveTab() {
 }
 
 /* =================== GOOGLE SHEET LOADING =================== */
-/* =================== GOOGLE SHEET LOADING =================== */
 async function loadReport(sheetUrl) {
   try {
     const csvUrl = normalizeGoogleCSV(sheetUrl);
@@ -195,8 +212,12 @@ function normalizeGoogleCSV(url) {
 function renderTable(cols, rows) {
   const thead = document.querySelector("#dataTable thead");
   const tbody = document.querySelector("#dataTable tbody");
+  
+  // CRITICAL: Wipe everything first
   thead.innerHTML = "";
   tbody.innerHTML = "";
+
+  if (!cols || !rows) return;
 
   // HEADER
   const trh = document.createElement("tr");
