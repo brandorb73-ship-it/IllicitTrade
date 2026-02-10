@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setRouteColor(e.target.value);
   });
 
-  // CLEAR ROUTES (Map lines only)
+  // CLEAR ROUTES
   document.getElementById("clearRoutesBtn").addEventListener("click", () => {
     clearTabRoutes(activeTab);
   });
@@ -47,55 +47,33 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("loadReportBtn").addEventListener("click", () => {
     const urlInput = document.getElementById("sheetUrl");
     const url = urlInput.value.trim();
-    
     if (!url) return alert("Paste a published Google Sheet CSV URL");
     
     tabUrls[activeTab] = url; 
     loadReport(url);
   });
 
-  // CLEAR DATA (Wipe Table and Memory)
+  // CLEAR DATA
   document.getElementById("clearDataBtn").addEventListener("click", () => {
-    if (confirm("Clear all data for " + activeTab + "?")) {
-      // 1. Wipe memory
+    if (confirm("Clear data for " + activeTab + "?")) {
       tabTables[activeTab] = null;
       tabUrls[activeTab] = "";
-      
-      // 2. Wipe UI
       document.getElementById("sheetUrl").value = "";
-      clearTable(); 
-      
-      // 3. Clear Map
-      clearTabRoutes(activeTab); 
-      
+      clearTable();
+      clearTabRoutes(activeTab);
       alert("Data cleared for " + activeTab);
     }
-  });
+  }); // <-- This closes the click function
 
-  // DOWNLOAD PDF
+  // REMAINING LISTENERS
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
-
-  // SAVE MAP & TABLE SNAPSHOT
   document.getElementById("saveMapBtn").addEventListener("click", () => {
     saveSnapshotTab(activeTab);
     renderAllMaps();
   });
 
-  // TAB SWITCHING
   bindTabs();
-}); // <--- This correctly closes DOMContentLoaded
-  // DOWNLOAD PDF
-  document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
-
-  // SAVE MAP & TABLE SNAPSHOT
-  document.getElementById("saveMapBtn").addEventListener("click", () => {
-    saveSnapshotTab(activeTab);
-    renderAllMaps();
-  });
-
-  // Initialize Tabs
-  bindTabs();
-});
+}); // <-- This closes DOMContentLoaded
   // DOWNLOAD PDF
   document.getElementById("downloadReportBtn").addEventListener("click", downloadReportPDF);
 
